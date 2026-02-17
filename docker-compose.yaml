@@ -1,0 +1,95 @@
+services:
+  dashboard:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        CADDY_VERSION: 2.10.2
+        PYTHON_VERSION: 3.14-slim
+        NODE_VERSION: 20-alpine
+    image: tunel:latest
+    container_name: tunel-dashboard
+    restart: unless-stopped
+    network_mode: host
+
+    environment:
+      - PYTHONUNBUFFERED=1
+      - ROUTES_FILE=/config/routes.json
+      - CADDY_CONFIG=/config/config.json5
+      - CADDY_ERRORS_DIR=/config/errors
+      - DASHBOARD_PORT=8090
+    volumes:
+      - ./docker/caddy:/config
+      - /var/run/docker.sock:/var/run/docker.sock
+
+    command:
+      ["uv","run","uvicorn","backend.main:backend","--host","0.0.0.0","--port","8090"]
+
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8090/health || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+
+  caddy:
+    image: tunel:latest
+    container_name: tunel-caddy
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      redis:
+        condition: service_healthy
+
+    environment:
+      - TZ=Europe/Madrid
+      - CF_API_TOKEN=${CF_API_TOKEN}
+      - MAXMIND_DB_PATH=/geoip/GeoLite2-City.mmdb
+      - TLS_REDIS_ADDRESS=127.0.0.1:6379
+      - TLS_REDIS_DB=0
+      - TLS_REDIS_PREFIX=caddy
+      - TLS_REDIS_PASSWORD=${TLS_REDIS_PASSWORD:-}
+
+    volumes:
+      - ./docker/caddy:/config
+      - ./docker/caddy/data:/data
+      - ./docker/caddy/geoip:/geoip:ro
+
+    command:
+      ["caddy","run","--config","/config/config.json5","--adapter","json5","--watch"]
+
+    healthcheck:
+      # проверяем что caddy отвечает на admin API
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:2019/config/ || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+
+  redis:
+    image: redis:7-alpine
+    container_name: tunel-redis
+    restart: unless-stopped
+    network_mode: host
+    command: ["redis-server","--save","","--appendonly","no"]
+    volumes:
+      - ./redis:/data
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: tunel-dozzle
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - DOZZLE_LEVEL=info
+      - DOZZLE_TAILSIZE=300
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock

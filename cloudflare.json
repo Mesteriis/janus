@@ -1,0 +1,12 @@
+{
+  "api_token": "7m1g4Al1zhbKsQOunQp0b54Av6LQp5DkQm_0PxZN",
+  "tunnels": {
+    "pve-main": {
+      "id": "44fc7cd2-a4ee-43bd-a160-f5e7ae5c68b9",
+      "token": null,
+      "zones": [
+        "domsub.me"
+      ]
+    }
+  }
+}

@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>503 · Сервис недоступен</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f0f1a;
+      --surface: #16213e;
+      --surface-muted: #1a1a2e;
+      --ink: #eaeaea;
+      --muted: #8892a0;
+      --accent: #7c3aed;
+      --accent-light: #a78bfa;
+      --accent-glow: rgba(124, 58, 237, 0.35);
+      --border: rgba(124, 58, 237, 0.18);
+      --shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Space Grotesk", "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    #particles-js {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+    }
+    .ambient {
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(circle at 15% 15%, rgba(124, 58, 237, 0.22), transparent 45%),
+        radial-gradient(circle at 85% 10%, rgba(59, 130, 246, 0.18), transparent 40%),
+        radial-gradient(circle at 70% 85%, rgba(16, 185, 129, 0.16), transparent 55%);
+      pointer-events: none;
+      z-index: 1;
+    }
+    .error-shell {
+      position: relative;
+      z-index: 2;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 48px 6vw;
+    }
+    .card {
+      max-width: 680px;
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      padding: 36px 32px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .eyebrow {
+      text-transform: uppercase;
+      letter-spacing: 0.22em;
+      font-size: 0.7rem;
+      color: var(--accent-light);
+      margin: 0;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(2.2rem, 4vw, 3.6rem);
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .code {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--accent-light);
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 10px;
+    }
+    a {
+      text-decoration: none;
+      font-weight: 600;
+      padding: 10px 16px;
+      border-radius: 12px;
+      border: 1px solid transparent;
+    }
+    .primary {
+      background: var(--accent);
+      color: white;
+      box-shadow: 0 16px 28px var(--accent-glow);
+    }
+    .ghost {
+      color: var(--ink);
+      border-color: var(--border);
+      background: transparent;
+    }
+    .meta {
+      display: grid;
+      gap: 6px;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+</style>
+  </head>
+  <body>
+    <div id="particles-js"></div>
+    <div class="ambient"></div>
+    <main class="error-shell">
+      <section class="card">
+        <p class="eyebrow">ct-112-tunel-new</p>
+        <div class="code">Ошибка 503</div>
+        <h1>Сервис недоступен</h1>
+        <p>Сервис временно недоступен. Попробуйте позже.</p>
+        <div class="meta">
+          <div>Проверьте запрос или вернитесь в панель управления.</div>
+          <div>Если проблема повторяется, сообщите корреляционный ID из логов.</div>
+        </div>
+        <div class="actions">
+          <a class="primary" href="/src/frontend/public">На главную</a>
+          <a class="ghost" href="/static/">Открыть dashboard</a>
+        </div>
+      </section>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+    <script>
+      if (window.particlesJS) {
+        window.particlesJS('particles-js', {"particles": {"number": {"value": 60, "density": {"enable": true, "value_area": 900}}, "color": {"value": "#a78bfa"}, "shape": {"type": "circle"}, "opacity": {"value": 0.35, "random": true}, "size": {"value": 2.6, "random": true}, "line_linked": {"enable": true, "distance": 120, "color": "#7c3aed", "opacity": 0.25, "width": 1}, "move": {"enable": true, "speed": 1.2}}, "interactivity": {"events": {"onhover": {"enable": true, "mode": "repulse"}}, "modes": {"repulse": {"distance": 140}}}, "retina_detect": true});
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,230 @@
+{
+  "routes": [
+    {
+      "id": "f9a3106c-0453-4f58-a5bc-6f818cde3075",
+      "domains": [
+        "git.sh-inc.ru"
+      ],
+      "enabled": true,
+      "upstream": {
+        "scheme": "http",
+        "host": "192.168.1.5",
+        "port": 3000
+      },
+      "request_body_max_mb": 100,
+      "headers_up": {
+        "X-Forwarded-Proto": "https",
+        "X-Forwarded-Ssl": "on"
+      }
+    },
+    {
+      "id": "a824d052-93c1-4108-a958-91d0e906c4c7",
+      "domains": [
+        "npm.sh-inc.ru"
+      ],
+      "enabled": true,
+      "upstream": {
+        "scheme": "http",
+        "host": "127.0.0.1",
+        "port": 81
+      }
+    },
+    {
+      "id": "a05c11c1-ca2a-42f7-bea6-415d3de3dcd0",
+      "domains": [
+        "monit.sh-inc.ru",
+        "map.sh-inc.ru"
+      ],
+      "enabled": true,
+      "upstream": {
+        "scheme": "http",
+        "host": "192.168.1.10",
+        "port": 20211
+      }
+    },
+    {
+      "id": "34356862-5db0-43db-87e5-4ff2e56039e9",
+      "domains": [
+        "registry.sh-inc.ru"
+      ],
+      "enabled": true,
+      "upstream": {
+        "scheme": "http",
+        "host": "192.168.1.5",
+        "port": 5005
+      },
+      "request_body_max_mb": 0,
+      "timeouts": {
+        "connect": 600,
+        "read": 600,
+        "write": 600
+      },
+      "headers_up": {
+        "Host": "{host}",
+        "X-Real-IP": "{remote_host}",
+        "X-Forwarded-For": "{remote_host}",
+        "X-Forwarded-Proto": "https"
+      }
+    },
+    {
+      "id": "4af9b034-4d80-4a67-920f-6480df3ab586",
+      "domains": [
+        "supa.sh-inc.ru"
+      ],
+      "enabled": false,
+      "upstream": {
+        "scheme": "http",
+        "host": "192.168.1.18",
+        "port": 3003
+      },
+      "request_body_max_mb": 100,
+      "response_headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS, PUT, DELETE, PATCH",
+        "Access-Control-Allow-Headers": "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization,apikey",
+        "Access-Control-Expose-Headers": "Content-Length,Content-Range"
+      },
+      "options_response": {
+        "enabled": true,
+        "status": 204
+      },
+      "path_routes": [
+        {
+          "id": "a1b1cf28-2e21-498f-9e7d-3a95d94e9f1f",
+          "path": "/auth/v1",
+          "strip_prefix": false,
+          "enabled": true,
+          "upstream": {
+            "scheme": "http",
+            "host": "192.168.1.18",
+            "port": 8081
+          },
+          "timeouts": {
+            "read": 900
+          }
+        },
+        {
+          "id": "3d0ce943-eb8b-4c9b-924b-22e0e463ace3",
+          "path": "/rest/v1",
+          "strip_prefix": false,
+          "enabled": true,
+          "upstream": {
+            "scheme": "http",
+            "host": "192.168.1.18",
+            "port": 3001
+          }
+        },
+        {
+          "id": "f533776c-7747-425c-b8f0-53477a26e06b",
+          "path": "/storage/v1",
+          "strip_prefix": false,
+          "enabled": true,
+          "upstream": {
+            "scheme": "http",
+            "host": "192.168.1.18",
+            "port": 3000
+          }
+        },
+        {
+          "id": "8e61c6c5-8cd6-45ca-9241-b8b39982d30d",
+          "path": "/pg-meta",
+          "strip_prefix": false,
+          "enabled": true,
+          "upstream": {
+            "scheme": "http",
+            "host": "192.168.1.18",
+            "port": 8088
+          }
+        },
+        {
+          "id": "d897b51d-cc84-4ae9-ae33-8730bdb4f09a",
+          "path": "/realtime/v1",
+          "strip_prefix": false,
+          "enabled": true,
+          "upstream": {
+            "scheme": "http",
+            "host": "192.168.1.18",
+            "port": 3004
+          },
+          "timeouts": {
+            "read": 3600,
+            "write": 3600
+          }
+        }
+      ]
+    },
+    {
+      "id": "adecebfe-9f8d-4a9e-b623-a627d4fc1049",
+      "domains": [
+        "observer.sh-inc.ru"
+      ],
+      "enabled": false,
+      "upstream": {
+        "scheme": "http",
+        "host": "192.168.1.63",
+        "port": 8000
+      }
+    },
+    {
+      "id": "52d2cd58-ae14-49ef-a2e1-e81766095d1f",
+      "domains": [
+        "mcp.sh-inc.ru"
+      ],
+      "enabled": true,
+      "upstream": {
+        "scheme": "http",
+        "host": "192.168.1.85",
+        "port": 12008
+      }
+    },
+    {
+      "id": "aba410c7-df41-4633-9443-b45a78cb5de1",
+      "domains": [
+        "hass.sh-inc.ru"
+      ],
+      "enabled": true,
+      "upstream": {
+        "scheme": "http",
+        "host": "192.168.1.4",
+        "port": 8123
+      },
+      "request_body_max_mb": 50,
+      "timeouts": {
+        "read": 3600,
+        "write": 3600
+      },
+      "headers_up": {
+        "Host": "{host}",
+        "X-Real-IP": "{remote_host}",
+        "X-Forwarded-For": "{remote_host}",
+        "X-Forwarded-Proto": "{scheme}",
+        "X-Forwarded-Host": "{host}"
+      }
+    },
+    {
+      "id": "25a368b5-a9ed-41c7-b8a3-a51fd311f840",
+      "domains": [
+        "domsub.me"
+      ],
+      "enabled": true,
+      "upstream": {
+        "scheme": "http",
+        "host": "192.168.1.100",
+        "port": 3000
+      },
+      "path_routes": [
+        {
+          "id": "ff2f8c06-3ca5-4adc-b83b-741b0aab9dac",
+          "path": "/api",
+          "strip_prefix": false,
+          "enabled": true,
+          "upstream": {
+            "scheme": "http",
+            "host": "192.168.1.88",
+            "port": 8080
+          }
+        }
+      ]
+    }
+  ]
+}

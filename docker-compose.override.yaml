@@ -1,0 +1,16 @@
+services:
+  caddy:
+    network_mode: bridge
+    ports:
+      - "80:80"
+      - "443:443"
+
+  dashboard:
+    network_mode: bridge
+    ports:
+      - "8090:8090"
+    environment:
+      - CLOUDFLARE_DEFAULT_SERVICE=http://caddy:80
+
+  cloudflared:
+    network_mode: bridge

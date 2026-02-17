@@ -1,0 +1,285 @@
+{
+  "apps": {
+    "http": {
+      "servers": {
+        "srv0": {
+          "listen": [
+            ":80",
+            ":443"
+          ],
+          "routes": [
+            {
+              "match": [
+                {
+                  "host": [
+                    "git.sh-inc.ru"
+                  ]
+                }
+              ],
+              "handle": [
+                {
+                  "handler": "request_body",
+                  "max_size": 100000000
+                },
+                {
+                  "handler": "reverse_proxy",
+                  "upstreams": [
+                    {
+                      "dial": "192.168.1.5:3000"
+                    }
+                  ],
+                  "lb_policy": "round_robin",
+                  "headers": {
+                    "request": {
+                      "set": {
+                        "X-Forwarded-Proto": [
+                          "https"
+                        ],
+                        "X-Forwarded-Ssl": [
+                          "on"
+                        ]
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "match": [
+                {
+                  "host": [
+                    "npm.sh-inc.ru"
+                  ]
+                }
+              ],
+              "handle": [
+                {
+                  "handler": "reverse_proxy",
+                  "upstreams": [
+                    {
+                      "dial": "127.0.0.1:81"
+                    }
+                  ],
+                  "lb_policy": "round_robin"
+                }
+              ]
+            },
+            {
+              "match": [
+                {
+                  "host": [
+                    "monit.sh-inc.ru",
+                    "map.sh-inc.ru"
+                  ]
+                }
+              ],
+              "handle": [
+                {
+                  "handler": "reverse_proxy",
+                  "upstreams": [
+                    {
+                      "dial": "192.168.1.10:20211"
+                    }
+                  ],
+                  "lb_policy": "round_robin"
+                }
+              ]
+            },
+            {
+              "match": [
+                {
+                  "host": [
+                    "registry.sh-inc.ru"
+                  ]
+                }
+              ],
+              "handle": [
+                {
+                  "handler": "request_body",
+                  "max_size": 0
+                },
+                {
+                  "handler": "reverse_proxy",
+                  "upstreams": [
+                    {
+                      "dial": "192.168.1.5:5005"
+                    }
+                  ],
+                  "lb_policy": "round_robin",
+                  "headers": {
+                    "request": {
+                      "set": {
+                        "Host": [
+                          "{host}"
+                        ],
+                        "X-Real-IP": [
+                          "{remote_host}"
+                        ],
+                        "X-Forwarded-For": [
+                          "{remote_host}"
+                        ],
+                        "X-Forwarded-Proto": [
+                          "https"
+                        ]
+                      }
+                    }
+                  },
+                  "transport": {
+                    "protocol": "http",
+                    "dial_timeout": "600s",
+                    "read_timeout": "600s",
+                    "write_timeout": "600s"
+                  }
+                }
+              ]
+            },
+            {
+              "match": [
+                {
+                  "host": [
+                    "mcp.sh-inc.ru"
+                  ]
+                }
+              ],
+              "handle": [
+                {
+                  "handler": "reverse_proxy",
+                  "upstreams": [
+                    {
+                      "dial": "192.168.1.85:12008"
+                    }
+                  ],
+                  "lb_policy": "round_robin"
+                }
+              ]
+            },
+            {
+              "match": [
+                {
+                  "host": [
+                    "hass.sh-inc.ru"
+                  ]
+                }
+              ],
+              "handle": [
+                {
+                  "handler": "request_body",
+                  "max_size": 50000000
+                },
+                {
+                  "handler": "reverse_proxy",
+                  "upstreams": [
+                    {
+                      "dial": "192.168.1.4:8123"
+                    }
+                  ],
+                  "lb_policy": "round_robin",
+                  "headers": {
+                    "request": {
+                      "set": {
+                        "Host": [
+                          "{host}"
+                        ],
+                        "X-Real-IP": [
+                          "{remote_host}"
+                        ],
+                        "X-Forwarded-For": [
+                          "{remote_host}"
+                        ],
+                        "X-Forwarded-Proto": [
+                          "{scheme}"
+                        ],
+                        "X-Forwarded-Host": [
+                          "{host}"
+                        ]
+                      }
+                    }
+                  },
+                  "transport": {
+                    "protocol": "http",
+                    "read_timeout": "3600s",
+                    "write_timeout": "3600s"
+                  }
+                }
+              ]
+            },
+            {
+              "match": [
+                {
+                  "host": [
+                    "domsub.me"
+                  ],
+                  "path": [
+                    "/api",
+                    "/api/*"
+                  ]
+                }
+              ],
+              "handle": [
+                {
+                  "handler": "reverse_proxy",
+                  "upstreams": [
+                    {
+                      "dial": "192.168.1.88:8080"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "match": [
+                {
+                  "host": [
+                    "domsub.me"
+                  ]
+                }
+              ],
+              "handle": [
+                {
+                  "handler": "reverse_proxy",
+                  "upstreams": [
+                    {
+                      "dial": "192.168.1.100:3000"
+                    }
+                  ],
+                  "lb_policy": "round_robin"
+                }
+              ]
+            }
+          ],
+          "automatic_https": {},
+          "errors": {
+            "routes": [
+              {
+                "handle": [
+                  {
+                    "handler": "rewrite",
+                    "uri": "/{http.error.status_code}.html"
+                  },
+                  {
+                    "handler": "file_server",
+                    "root": "/Users/avm/projects/Personal/infra/ct-112-tunel-new/dashboard/docker/caddy/errors"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    "tls": {
+      "automation": {
+        "policies": [
+          {
+            "issuers": [
+              {
+                "module": "acme",
+                "email": "avm@sh-inc.ru"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

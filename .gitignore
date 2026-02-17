@@ -1,0 +1,9 @@
+cloudflared/credentials.json
+cloudflared/*.pem
+cloudflared/*.cert
+.env
+src/frontend/node_modules
+src/frontend/dist
+dashboard/static/index.html
+dashboard/static/assets
+auth.txt
