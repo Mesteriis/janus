@@ -3,7 +3,7 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_cloudflare_service_list(monkeypatch):
-    from app.services import cloudflare as cf_service
+    from backend.services import cloudflare as cf_service
 
     monkeypatch.setattr(cf_service, "load_cf_hostnames", lambda: {"hostnames": [{"hostname": "a"}], "fallback": "x"})
     monkeypatch.setattr(cf_service, "cf_configured", lambda: True)
@@ -14,8 +14,8 @@ async def test_cloudflare_service_list(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_cloudflare_service_create_update_delete(monkeypatch):
-    from app.services import cloudflare as cf_service
-    from app.services.errors import ServiceError
+    from backend.services import cloudflare as cf_service
+    from backend.services.errors import ServiceError
 
     store = {"hostnames": []}
 
@@ -48,7 +48,7 @@ async def test_cloudflare_service_create_update_delete(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_cloudflare_service_apply_sync_errors(monkeypatch):
-    from app.services import cloudflare as cf_service
+    from backend.services import cloudflare as cf_service
 
     monkeypatch.setattr(
         cf_service,

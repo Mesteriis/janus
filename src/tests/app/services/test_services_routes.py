@@ -3,7 +3,7 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_routes_create_replace_update_delete(monkeypatch, tmp_path, reload_settings):
-    from app.services import routes as routes_service
+    from backend.services import routes as routes_service
 
     monkeypatch.setenv("ROUTES_FILE", str(tmp_path / "routes.json"))
     monkeypatch.setenv("CADDY_CONFIG", str(tmp_path / "config.json5"))
@@ -19,7 +19,7 @@ async def test_routes_create_replace_update_delete(monkeypatch, tmp_path, reload
     created = await routes_service.create_route(dict(payload))
     assert created["domains"] == ["example.com"]
 
-    from app.services.errors import ServiceError
+    from backend.services.errors import ServiceError
 
     # conflict
     with pytest.raises(ServiceError):
@@ -53,8 +53,8 @@ async def test_routes_create_replace_update_delete(monkeypatch, tmp_path, reload
 
 @pytest.mark.asyncio
 async def test_routes_roll_back_when_provisioning_fails(monkeypatch, tmp_path, reload_settings):
-    from app.services import routes as routes_service
-    from app.services.errors import ServiceError
+    from backend.services import routes as routes_service
+    from backend.services.errors import ServiceError
 
     monkeypatch.setenv("ROUTES_FILE", str(tmp_path / "routes.json"))
     monkeypatch.setenv("CADDY_CONFIG", str(tmp_path / "config.json5"))

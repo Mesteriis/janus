@@ -3,7 +3,7 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_update_plugins(monkeypatch, tmp_path, reload_settings):
-    from app.services import plugins as plugins_service
+    from backend.services import plugins as plugins_service
 
     monkeypatch.setenv("ROUTES_FILE", str(tmp_path / "routes.json"))
     monkeypatch.setenv("CADDY_CONFIG", str(tmp_path / "config.json5"))
@@ -20,7 +20,7 @@ async def test_update_plugins(monkeypatch, tmp_path, reload_settings):
 
 @pytest.mark.asyncio
 async def test_update_l4_routes(monkeypatch, tmp_path, reload_settings):
-    from app.services import l4 as l4_service
+    from backend.services import l4 as l4_service
 
     monkeypatch.setenv("ROUTES_FILE", str(tmp_path / "routes.json"))
     monkeypatch.setenv("CADDY_CONFIG", str(tmp_path / "config.json5"))

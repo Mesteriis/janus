@@ -58,7 +58,7 @@ def _verify_password(candidate: str, stored: str) -> bool:
     if not stored:
         return False
     clean_candidate = candidate.strip()
-    # Backward compatibility for legacy plaintext values.
+    # Backward compatibility for plaintext values.
     if not stored.startswith(f"{_PASSWORD_SCHEME}$"):
         return hmac.compare_digest(clean_candidate, stored)
     try:

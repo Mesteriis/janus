@@ -7,7 +7,7 @@ def test_render_caddy_config_full(tmp_path, monkeypatch, reload_settings):
     monkeypatch.setenv("TLS_REDIS_ADDRESS", "redis:6379")
     monkeypatch.setenv("CADDY_ERRORS_DIR", "/config/errors")
 
-    from app import caddy
+    from backend import caddy
 
     reload_settings()
     importlib.reload(caddy)
@@ -136,7 +136,7 @@ def test_render_caddy_config_full(tmp_path, monkeypatch, reload_settings):
 def test_render_caddyfile_http_site_when_tls_disabled(tmp_path, monkeypatch, reload_settings):
     monkeypatch.setenv("CADDYFILE_PATH", str(tmp_path / "Caddyfile"))
 
-    from app import caddyfile
+    from backend import caddyfile
 
     reload_settings()
     importlib.reload(caddyfile)

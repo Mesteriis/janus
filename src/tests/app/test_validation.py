@@ -5,7 +5,7 @@ import pytest
 
 
 def test_utils_read_write_json(tmp_path):
-    from app import utils
+    from backend import utils
 
     path = tmp_path / "a" / "data.json"
     utils.write_json(str(path), {"ok": True})
@@ -19,7 +19,7 @@ def test_utils_read_write_json(tmp_path):
 def test_storage_defaults_and_save(tmp_path, monkeypatch):
     monkeypatch.setenv("ROUTES_FILE", str(tmp_path / "routes.json"))
     monkeypatch.setenv("CADDY_CONFIG", str(tmp_path / "config.json5"))
-    from app import settings, storage
+    from backend import settings, storage
 
     importlib.reload(settings)
     importlib.reload(storage)
@@ -40,7 +40,7 @@ def test_storage_defaults_and_save(tmp_path, monkeypatch):
 
 
 def test_validation_helpers():
-    from app import validation
+    from backend import validation
 
     assert validation.normalize_domains([" Example.COM "]) == ["example.com"]
     assert validation.validate_domain("example.com")
@@ -81,7 +81,7 @@ def test_validation_helpers():
 
 
 def test_validation_route_payload_full():
-    from app import validation
+    from backend import validation
 
     payload = {
         "domains": ["example.com"],
@@ -137,7 +137,7 @@ def test_validation_route_payload_full():
 
 
 def test_validation_route_payload_errors():
-    from app import validation
+    from backend import validation
 
     with pytest.raises(ValueError):
         validation.validate_route_payload({"domains": []})

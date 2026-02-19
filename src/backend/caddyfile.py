@@ -31,7 +31,6 @@ def _errors_root() -> str:
         return str(Path(static_dir))
     candidates: list[Path] = [
         settings.PROJECT_ROOT / "docker" / "caddy" / "errors",
-        settings.PROJECT_ROOT / "legacy" / "caddy" / "errors",
     ]
     for candidate in candidates:
         if candidate.exists():

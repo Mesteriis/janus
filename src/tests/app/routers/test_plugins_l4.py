@@ -15,7 +15,7 @@ def test_plugins_get_put(client_factory):
 
 def test_plugins_put_error(client_factory, monkeypatch):
     client, _ = client_factory()
-    from app.services.errors import ServiceError
+    from backend.services.errors import ServiceError
 
     def boom(_payload):
         raise ServiceError(500, "boom")
@@ -42,7 +42,7 @@ def test_l4_routes_get_put(client_factory):
 
 def test_l4_routes_put_error(client_factory, monkeypatch):
     client, _ = client_factory()
-    from app.services.errors import ServiceError
+    from backend.services.errors import ServiceError
 
     def boom(_routes):
         raise ServiceError(500, "boom")

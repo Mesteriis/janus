@@ -2,7 +2,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.core.middleware import CorrelationIdMiddleware
+from backend.core.middleware import CorrelationIdMiddleware
 
 
 def test_correlation_id_header_and_logs(client_factory, capsys):

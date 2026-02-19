@@ -2,7 +2,7 @@ import pytest
 
 
 def test_tunnel_start_missing_token(monkeypatch, reload_settings):
-    from app.services import tunnel as tunnel_service
+    from backend.services import tunnel as tunnel_service
 
     monkeypatch.setenv("CLOUDFLARE_TUNNEL_TOKEN", "")
     reload_settings()
@@ -11,7 +11,7 @@ def test_tunnel_start_missing_token(monkeypatch, reload_settings):
 
 
 def test_tunnel_start_errors(monkeypatch, reload_settings):
-    from app.services import tunnel as tunnel_service
+    from backend.services import tunnel as tunnel_service
 
     monkeypatch.setenv("CLOUDFLARE_TUNNEL_TOKEN", "tok")
     reload_settings()
@@ -32,7 +32,7 @@ def test_tunnel_start_errors(monkeypatch, reload_settings):
 
 
 def test_tunnel_status_and_stop(monkeypatch):
-    from app.services import tunnel as tunnel_service
+    from backend.services import tunnel as tunnel_service
 
     monkeypatch.setattr(tunnel_service, "tunnel_status", lambda: {"status": "running"})
     assert tunnel_service.status()["status"] == "running"
@@ -53,7 +53,7 @@ def test_tunnel_status_and_stop(monkeypatch):
 
 
 def test_tunnel_ensure_running(monkeypatch, reload_settings):
-    from app.services import tunnel as tunnel_service
+    from backend.services import tunnel as tunnel_service
 
     monkeypatch.setenv("CLOUDFLARE_TUNNEL_TOKEN", "tok")
     reload_settings()

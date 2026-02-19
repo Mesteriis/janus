@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project version="4">
-  <component name="CodexSettings">
-    <option name="codexBinaryPath" value="codex" />
-    <option name="extraCliFlags" value="--config ~/.codex/config.toml" />
-    <option name="sandboxNetworkAccess" value="true" />
-    <option name="telemetryEnabled" value="false" />
-  </component>
-</project>

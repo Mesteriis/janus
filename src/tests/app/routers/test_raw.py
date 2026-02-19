@@ -30,7 +30,7 @@ def test_raw_routes_crud_and_validation(client_factory):
 
 def test_raw_routes_service_error(client_factory, monkeypatch):
     client, _ = client_factory()
-    from app.services.errors import ServiceError
+    from backend.services.errors import ServiceError
 
     async def boom(_content):
         raise ServiceError(500, "boom")

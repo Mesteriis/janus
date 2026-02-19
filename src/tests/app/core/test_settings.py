@@ -13,7 +13,7 @@ def test_settings_path_normalization(monkeypatch, tmp_path):
     monkeypatch.setenv("CLOUDFLARE_STATE_FILE", "rel/state.json")
     monkeypatch.setenv("CF_TUNNEL_DIR", "rel/cloudflared")
 
-    from app.core.config import Settings
+    from backend.core.config import Settings
 
     settings = Settings()
     root = settings.project_root
@@ -32,7 +32,7 @@ def test_settings_feature_flags(monkeypatch, tmp_path):
     monkeypatch.setenv("FEATURE_VPN_ENABLED", "0")
     monkeypatch.setenv("SETTINGS_JSON_FILE", str(tmp_path / "app_settings.json"))
 
-    from app.core.config import Settings
+    from backend.core.config import Settings
 
     settings = Settings()
     assert settings.feature_tunnel_enabled is False
@@ -55,7 +55,7 @@ def test_settings_loaded_from_json_file(monkeypatch, tmp_path):
     monkeypatch.setenv("SETTINGS_JSON_FILE", str(json_path))
     monkeypatch.setenv("DASHBOARD_PORT", "8090")
 
-    from app.core.config import Settings
+    from backend.core.config import Settings
 
     settings = Settings()
     assert settings.dashboard_port == 9099
@@ -66,15 +66,15 @@ def test_settings_loaded_from_json_file(monkeypatch, tmp_path):
 
 def test_configure_logging(monkeypatch):
     monkeypatch.setenv("LOG_LEVEL", "debug")
-    from app.core.logging import configure_logging
+    from backend.core.logging import configure_logging
 
     configure_logging()
 
 
 def test_correlation_id_filter():
     import logging
-    from app.core.context import set_correlation_id, reset_correlation_id
-    from app.core.logging import CorrelationIdFilter
+    from backend.core.context import set_correlation_id, reset_correlation_id
+    from backend.core.logging import CorrelationIdFilter
 
     token = set_correlation_id("cid-123")
     try:
@@ -95,7 +95,7 @@ def test_correlation_id_filter():
 
 
 def test_correlation_context_sets_and_resets():
-    from app.core.context import correlation_context, get_correlation_id, reset_correlation_id, set_correlation_id
+    from backend.core.context import correlation_context, get_correlation_id, reset_correlation_id, set_correlation_id
 
     token = set_correlation_id("base")
     try:
@@ -112,9 +112,9 @@ def test_lifespan_handles_exception(monkeypatch, tmp_path):
 
     monkeypatch.setenv("ROUTES_FILE", str(tmp_path / "routes.json"))
     monkeypatch.setenv("CADDY_CONFIG", str(tmp_path / "config.json5"))
-    import app.settings as settings
-    import app.storage as storage
-    import app.caddy as caddy
+    import backend.settings as settings
+    import backend.storage as storage
+    import backend.caddy as caddy
 
     importlib.reload(settings)
     importlib.reload(storage)

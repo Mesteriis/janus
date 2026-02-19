@@ -75,7 +75,7 @@ def test_auth_disabled_login_returns_ok(client_factory):
 
 
 def test_auth_password_read_error(monkeypatch, tmp_path):
-    from app import auth, settings
+    from backend import auth, settings
 
     password_file = tmp_path / "auth.txt"
     password_file.write_text("secret", encoding="utf-8")
@@ -146,7 +146,7 @@ def test_auth_config_validation_errors(client_factory):
 
 
 def test_set_password_stat_error(monkeypatch, tmp_path):
-    from app import auth, settings
+    from backend import auth, settings
 
     password_file = tmp_path / "auth.txt"
     monkeypatch.setattr(settings, "AUTH_PASSWORD_FILE", password_file)
@@ -160,7 +160,7 @@ def test_set_password_stat_error(monkeypatch, tmp_path):
 
 
 def test_set_password_unlink_error(monkeypatch, tmp_path):
-    from app import auth, settings
+    from backend import auth, settings
 
     password_file = tmp_path / "auth.txt"
     password_file.write_text("secret", encoding="utf-8")

@@ -6,9 +6,9 @@ import pytest
 
 
 def test_cf_store_and_configured(tmp_path, monkeypatch, reload_settings):
-    from app.cloudflare.store import TunnelStateStorage
-    from app.cloudflare.hostnames import cf_configured
-    import app.cloudflare.store as store_mod
+    from backend.cloudflare.store import TunnelStateStorage
+    from backend.cloudflare.hostnames import cf_configured
+    import backend.cloudflare.store as store_mod
 
     state_path = tmp_path / "state.json"
     store = TunnelStateStorage(state_path)
@@ -58,7 +58,7 @@ def test_cf_store_and_configured(tmp_path, monkeypatch, reload_settings):
 
 @pytest.mark.asyncio
 async def test_cf_checker_methods(monkeypatch):
-    from app.cloudflare.checker import CloudflareTokenCheckerSDK
+    from backend.cloudflare.checker import CloudflareTokenCheckerSDK
 
     class DummyResp:
         def __init__(self, payload):
@@ -211,7 +211,7 @@ async def test_cf_checker_methods(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_cf_hostnames_apply(monkeypatch, tmp_path, cf_env, reload_settings):
-    from app.cloudflare import hostnames
+    from backend.cloudflare import hostnames
 
     class DummyCF:
         def __init__(self, state_file):
@@ -275,7 +275,7 @@ async def test_cf_hostnames_apply(monkeypatch, tmp_path, cf_env, reload_settings
 
 @pytest.mark.asyncio
 async def test_cf_flow_sync(monkeypatch, tmp_path, cf_env):
-    from app.cloudflare import flow
+    from backend.cloudflare import flow
 
     class DummyCF:
         def __init__(self, state_file):
@@ -335,7 +335,7 @@ async def test_cf_flow_sync(monkeypatch, tmp_path, cf_env):
 
 @pytest.mark.asyncio
 async def test_cf_apply_errors(monkeypatch, tmp_path, cf_env):
-    from app.cloudflare import hostnames
+    from backend.cloudflare import hostnames
 
     class DummyCF:
         def __init__(self, state_file):
@@ -356,7 +356,7 @@ async def test_cf_apply_errors(monkeypatch, tmp_path, cf_env):
 
 @pytest.mark.asyncio
 async def test_cf_flow_token_and_skip(monkeypatch, tmp_path, reload_settings):
-    from app.cloudflare import flow
+    from backend.cloudflare import flow
 
     class DummyCF:
         def __init__(self, state_file, ready=False, bootstrap_value=False):
@@ -415,7 +415,7 @@ async def test_cf_flow_token_and_skip(monkeypatch, tmp_path, reload_settings):
 
 
 def test_cf_hostnames_file_and_sync_cases(monkeypatch, tmp_path, cf_env, reload_settings):
-    from app.cloudflare import hostnames
+    from backend.cloudflare import hostnames
     cf_env(CLOUDFLARE_DEFAULT_SERVICE="bad", CLOUDFLARE_HOSTNAMES_FILE=str(tmp_path / "hn.json"))
     reload_settings()
 
@@ -438,7 +438,7 @@ def test_cf_hostnames_file_and_sync_cases(monkeypatch, tmp_path, cf_env, reload_
 
 @pytest.mark.asyncio
 async def test_cf_hostnames_apply_edge_cases(monkeypatch, tmp_path, cf_env, reload_settings):
-    from app.cloudflare import hostnames
+    from backend.cloudflare import hostnames
 
     class DummyCF:
         def __init__(self, state_file, bootstrap_value=False):

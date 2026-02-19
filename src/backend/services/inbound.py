@@ -27,10 +27,6 @@ def _full_container_name(tunnel_id: str) -> str:
     return f"{settings.CF_TUNNEL_CONTAINER}-{_safe_tunnel_id(tunnel_id)}"
 
 
-def _legacy_container_name(tunnel_id: str) -> str:
-    return f"{settings.CF_TUNNEL_CONTAINER}-{_safe_tunnel_id(tunnel_id)[:8]}"
-
-
 def _read_token_file() -> str:
     path = _token_path()
     try:
@@ -354,10 +350,7 @@ async def delete_cloudflare_tunnel(tunnel_id: str, account_id: str = "") -> dict
         else:
             removed_remote = {"status": "skipped", "reason": "tunnel_not_found"}
 
-    removed = [
-        await asyncio.to_thread(stop_tunnel_container, _full_container_name(clean_tunnel)),
-        await asyncio.to_thread(stop_tunnel_container, _legacy_container_name(clean_tunnel)),
-    ]
+    removed = [await asyncio.to_thread(stop_tunnel_container, _full_container_name(clean_tunnel))]
     status = await get_cloudflare_status()
     status["docker"] = {"removed": removed}
     status["cloudflare"] = removed_remote
@@ -385,8 +378,6 @@ async def start_cloudflare_tunnel(tunnel_id: str, account_id: str = "") -> dict:
 
     await _route_tunnel_to_caddy(sdk, token, resolved_account_id, clean_tunnel)
     full_name = _full_container_name(clean_tunnel)
-    # Drop old short-name container if it exists from previous builds.
-    await asyncio.to_thread(stop_tunnel_container, _legacy_container_name(clean_tunnel))
     try:
         started = await asyncio.to_thread(start_tunnel, tunnel_token, full_name)
     except Exception as exc:

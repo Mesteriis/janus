@@ -61,7 +61,7 @@ def test_caddy_runtime_actions(client_factory, monkeypatch):
 
 def test_caddy_runtime_service_error(client_factory, monkeypatch):
     client, _ = client_factory()
-    from app.services.errors import ServiceError
+    from backend.services.errors import ServiceError
 
     monkeypatch.setattr(
         "backend.routers.caddy_runtime.runtime_service.get_status",

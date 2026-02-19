@@ -10,8 +10,8 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_cloudflare_client_core(monkeypatch, tmp_path):
-    from app.cloudflare import client as cf_client
-    from app.cloudflare.checker import TokenCheckResult
+    from backend.cloudflare import client as cf_client
+    from backend.cloudflare.checker import TokenCheckResult
 
     class DummyChecker:
         def __init__(self, token):
@@ -181,8 +181,8 @@ async def test_cloudflare_client_core(monkeypatch, tmp_path):
 
 @pytest.mark.asyncio
 async def test_cloudflare_client_dns_and_tunnel(monkeypatch, tmp_path):
-    from app.cloudflare import client as cf_client
-    from app.cloudflare.checker import TokenCheckResult
+    from backend.cloudflare import client as cf_client
+    from backend.cloudflare.checker import TokenCheckResult
 
     class DummyChecker:
         def __init__(self, token):
@@ -383,7 +383,7 @@ async def test_cloudflare_client_dns_and_tunnel(monkeypatch, tmp_path):
 
 @pytest.mark.asyncio
 async def test_ensure_ingress_for_zone_drops_existing_catch_all(tmp_path):
-    from app.cloudflare import client as cf_client
+    from backend.cloudflare import client as cf_client
 
     cf = cf_client.CloudFlare(state_file=tmp_path / "state.json")
     captured: dict[str, dict] = {}
@@ -425,9 +425,9 @@ async def test_ensure_ingress_for_zone_drops_existing_catch_all(tmp_path):
 
 @pytest.mark.asyncio
 async def test_provision_all_to_caddy(monkeypatch, tmp_path):
-    from app.cloudflare import client as cf_client
-    from app.cloudflare.checker import TokenCheckResult
-    from app.cloudflare.constants import DnsException
+    from backend.cloudflare import client as cf_client
+    from backend.cloudflare.checker import TokenCheckResult
+    from backend.cloudflare.constants import DnsException
 
     class DummyChecker:
         def __init__(self, token):
@@ -506,9 +506,9 @@ async def test_provision_all_to_caddy(monkeypatch, tmp_path):
 
 @pytest.mark.asyncio
 async def test_cloudflare_client_branches(monkeypatch, tmp_path):
-    from app.cloudflare import client as cf_client
-    from app.cloudflare.checker import TokenCheckResult
-    from app.cloudflare.constants import DnsException
+    from backend.cloudflare import client as cf_client
+    from backend.cloudflare.checker import TokenCheckResult
+    from backend.cloudflare.constants import DnsException
 
     class DummyChecker:
         def __init__(self, token):
@@ -671,7 +671,7 @@ async def test_cloudflare_client_branches(monkeypatch, tmp_path):
 
 
 def test_sdk_import_paths(monkeypatch, tmp_path):
-    import app.cloudflare.sdk as sdk
+    import backend.cloudflare.sdk as sdk
     import importlib
     import os
 
@@ -726,7 +726,7 @@ def test_sdk_import_paths(monkeypatch, tmp_path):
 
 def test_sdk_import_error(monkeypatch):
     import importlib
-    import app.cloudflare.sdk as sdk
+    import backend.cloudflare.sdk as sdk
 
     dummy = types.SimpleNamespace()
     monkeypatch.setitem(sys.modules, "cloudflare", dummy)
@@ -738,7 +738,7 @@ def test_sdk_import_path_exceptions(monkeypatch, tmp_path):
     import importlib
     import os
     import pathlib
-    import app.cloudflare.sdk as sdk
+    import backend.cloudflare.sdk as sdk
 
     local_root = Path(sdk.__file__).resolve().parent.parent
     cwd = os.getcwd()

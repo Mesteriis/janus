@@ -4,7 +4,7 @@ import pytest
 
 
 def test_run_caddy_validate_file_not_found(monkeypatch, reload_settings):
-    from app.services import provisioning
+    from backend.services import provisioning
 
     monkeypatch.setenv("CADDY_VALIDATE", "1")
     reload_settings()
@@ -18,7 +18,7 @@ def test_run_caddy_validate_file_not_found(monkeypatch, reload_settings):
 
 
 def test_run_caddy_validate_success(monkeypatch, reload_settings):
-    from app.services import provisioning
+    from backend.services import provisioning
 
     monkeypatch.setenv("CADDY_VALIDATE", "1")
     reload_settings()
@@ -32,7 +32,7 @@ def test_run_caddy_validate_success(monkeypatch, reload_settings):
 
 
 def test_run_caddy_validate_calledprocess(monkeypatch, reload_settings):
-    from app.services import provisioning
+    from backend.services import provisioning
     import subprocess
 
     monkeypatch.setenv("CADDY_VALIDATE", "1")
@@ -46,7 +46,7 @@ def test_run_caddy_validate_calledprocess(monkeypatch, reload_settings):
 
 
 def test_run_caddy_validate_skipped(monkeypatch, reload_settings):
-    from app.services import provisioning
+    from backend.services import provisioning
 
     monkeypatch.setenv("CADDY_VALIDATE", "0")
     reload_settings()
@@ -59,8 +59,8 @@ def test_run_caddy_validate_skipped(monkeypatch, reload_settings):
 
 
 def test_write_and_validate_config_success(monkeypatch, tmp_path, reload_settings):
-    from app.services import provisioning
-    from app.plugins import default_plugins
+    from backend.services import provisioning
+    from backend.plugins import default_plugins
 
     monkeypatch.setenv("CADDY_CONFIG", str(tmp_path / "config.json5"))
     reload_settings()
@@ -72,9 +72,9 @@ def test_write_and_validate_config_success(monkeypatch, tmp_path, reload_setting
 
 
 def test_write_and_validate_config_with_correlation_id(monkeypatch, tmp_path, reload_settings):
-    from app.services import provisioning
-    from app.plugins import default_plugins
-    from app.core.context import get_correlation_id, reset_correlation_id, set_correlation_id
+    from backend.services import provisioning
+    from backend.plugins import default_plugins
+    from backend.core.context import get_correlation_id, reset_correlation_id, set_correlation_id
 
     monkeypatch.setenv("CADDY_CONFIG", str(tmp_path / "config.json5"))
     reload_settings()
@@ -91,8 +91,8 @@ def test_write_and_validate_config_with_correlation_id(monkeypatch, tmp_path, re
 
 
 def test_write_and_validate_config_rollback(monkeypatch, tmp_path, reload_settings):
-    from app.services import provisioning
-    from app.plugins import default_plugins
+    from backend.services import provisioning
+    from backend.plugins import default_plugins
 
     config_path = tmp_path / "config.json5"
     config_path.write_text("old")
@@ -108,8 +108,8 @@ def test_write_and_validate_config_rollback(monkeypatch, tmp_path, reload_settin
 
 
 def test_write_and_validate_config_no_old(monkeypatch, tmp_path, reload_settings):
-    from app.services import provisioning
-    from app.plugins import default_plugins
+    from backend.services import provisioning
+    from backend.plugins import default_plugins
 
     config_path = tmp_path / "config.json5"
     monkeypatch.setenv("CADDY_CONFIG", str(config_path))
@@ -123,7 +123,7 @@ def test_write_and_validate_config_no_old(monkeypatch, tmp_path, reload_settings
 
 
 def test_restore_config_unlink_error():
-    from app.services import provisioning
+    from backend.services import provisioning
 
     class DummyPath:
         def exists(self):
@@ -137,7 +137,7 @@ def test_restore_config_unlink_error():
 
 @pytest.mark.asyncio
 async def test_provision_after_routes_change_skip_trigger(monkeypatch):
-    from app.services import provisioning
+    from backend.services import provisioning
 
     called = {"write": 0}
 
@@ -152,7 +152,7 @@ async def test_provision_after_routes_change_skip_trigger(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_provision_after_routes_change_cf_disabled(monkeypatch):
-    from app.services import provisioning
+    from backend.services import provisioning
 
     monkeypatch.setattr(provisioning, "write_and_validate_config", lambda _d, **_kw: None)
     monkeypatch.setattr(provisioning, "cf_configured", lambda: False)
@@ -163,7 +163,7 @@ async def test_provision_after_routes_change_cf_disabled(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_provision_after_routes_change_success(monkeypatch):
-    from app.services import provisioning
+    from backend.services import provisioning
 
     monkeypatch.setattr(provisioning, "write_and_validate_config", lambda _d, **_kw: None)
     monkeypatch.setattr(provisioning, "cf_configured", lambda: True)
@@ -179,8 +179,8 @@ async def test_provision_after_routes_change_success(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_provision_after_routes_change_cli_correlation(monkeypatch):
-    from app.services import provisioning
-    from app.core.context import get_correlation_id, reset_correlation_id, set_correlation_id
+    from backend.services import provisioning
+    from backend.core.context import get_correlation_id, reset_correlation_id, set_correlation_id
 
     seen = {}
 
@@ -204,7 +204,7 @@ async def test_provision_after_routes_change_cli_correlation(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_provision_after_routes_change_cf_error(monkeypatch):
-    from app.services import provisioning
+    from backend.services import provisioning
 
     monkeypatch.setattr(provisioning, "write_and_validate_config", lambda _d, **_kw: None)
     monkeypatch.setattr(provisioning, "cf_configured", lambda: True)
@@ -220,8 +220,8 @@ async def test_provision_after_routes_change_cf_error(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_provision_after_routes_change_service_error(monkeypatch):
-    from app.services import provisioning
-    from app.services.errors import ServiceError
+    from backend.services import provisioning
+    from backend.services.errors import ServiceError
 
     monkeypatch.setattr(provisioning, "write_and_validate_config", lambda _d, **_kw: None)
     monkeypatch.setattr(provisioning, "cf_configured", lambda: True)
@@ -236,7 +236,7 @@ async def test_provision_after_routes_change_service_error(monkeypatch):
 
 
 def test_ensure_tunnel_running_proxy(monkeypatch):
-    from app.services import provisioning
+    from backend.services import provisioning
 
     class Dummy:
         @staticmethod
@@ -247,9 +247,9 @@ def test_ensure_tunnel_running_proxy(monkeypatch):
     assert provisioning.ensure_tunnel_running()["status"] == "running"
 
 
-def test_ensure_tunnel_running_skips_legacy_token_error(monkeypatch):
-    from app.services import provisioning
-    from app.services.errors import ServiceError
+def test_ensure_tunnel_running_skips_tunnel_token_error(monkeypatch):
+    from backend.services import provisioning
+    from backend.services.errors import ServiceError
 
     class Dummy:
         @staticmethod
@@ -259,12 +259,12 @@ def test_ensure_tunnel_running_skips_legacy_token_error(monkeypatch):
     monkeypatch.setattr(provisioning, "tunnel_service", Dummy)
     result = provisioning.ensure_tunnel_running()
     assert result["status"] == "skipped"
-    assert result["reason"] == "legacy_tunnel_token_not_configured"
+    assert result["reason"] == "tunnel_token_not_configured"
 
 
 @pytest.mark.asyncio
 async def test_provisioning_logs_start_skip(caplog, monkeypatch):
-    from app.services import provisioning
+    from backend.services import provisioning
 
     monkeypatch.setattr(provisioning, "write_and_validate_config", lambda _d, **_kw: None)
     monkeypatch.setattr(provisioning, "cf_configured", lambda: False)
@@ -277,9 +277,9 @@ async def test_provisioning_logs_start_skip(caplog, monkeypatch):
 
 
 def test_provisioning_logs_rollback(caplog, monkeypatch, tmp_path, reload_settings):
-    from app.services import provisioning
-    from app.plugins import default_plugins
-    from app.core.context import set_correlation_id, reset_correlation_id
+    from backend.services import provisioning
+    from backend.plugins import default_plugins
+    from backend.core.context import set_correlation_id, reset_correlation_id
 
     config_path = tmp_path / "config.json5"
     monkeypatch.setenv("CADDY_CONFIG", str(config_path))
@@ -299,7 +299,7 @@ def test_provisioning_logs_rollback(caplog, monkeypatch, tmp_path, reload_settin
 
 
 def test_provisioning_helpers():
-    from app.services import provisioning
+    from backend.services import provisioning
 
     res = provisioning._provision_result("ok", reason="x")
     assert res["status"] == "ok"

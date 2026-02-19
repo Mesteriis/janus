@@ -5,8 +5,8 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_update_routes_raw(monkeypatch, tmp_path, reload_settings):
-    from app.services import raw as raw_service
-    from app.services import provisioning
+    from backend.services import raw as raw_service
+    from backend.services import provisioning
 
     monkeypatch.setenv("ROUTES_FILE", str(tmp_path / "routes.json"))
     monkeypatch.setenv("CADDY_CONFIG", str(tmp_path / "config.json5"))

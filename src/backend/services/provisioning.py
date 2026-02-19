@@ -104,10 +104,10 @@ def ensure_tunnel_running() -> dict:
             return ensure()
         except ServiceError as exc:
             # In managed Cloudflare flow we use API token + per-tunnel token and
-            # may not have legacy CLOUDFLARE_TUNNEL_TOKEN env configured.
+            # may not have CLOUDFLARE_TUNNEL_TOKEN env configured.
             if exc.status_code == 400 and "CLOUDFLARE_TUNNEL_TOKEN is empty" in str(exc.detail or ""):
                 logger.info("provisioning.skip")
-                return {"status": "skipped", "reason": "legacy_tunnel_token_not_configured"}
+                return {"status": "skipped", "reason": "tunnel_token_not_configured"}
             raise
     return {"status": "skipped", "reason": "tunnel_disabled"}
 

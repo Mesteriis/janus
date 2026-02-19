@@ -37,11 +37,9 @@ def _migrate_data_layout() -> None:
     state_dst = Path(settings.CF_STATE_FILE)
     hostnames_sources = [
         root / "cloudflared" / "hostnames.json",
-        root / "legacy" / "cloudflared" / "hostnames.json",
     ]
     state_sources = [
         root / "cloudflared" / "state.json",
-        root / "legacy" / "cloudflared" / "state.json",
     ]
     for src in hostnames_sources:
         _move_if_present(src, hostnames_dst)

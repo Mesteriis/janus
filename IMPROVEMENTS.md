@@ -815,15 +815,9 @@ from .routers import routers
 for r in routers:
     v1_router.include_router(r, prefix="")
 
-# Legacy support (redirect to v1)
-legacy_router = APIRouter(prefix="/api", deprecated=True)
-for r in routers:
-    legacy_router.include_router(r, prefix="")
-
-# Export both
+# Export v1 only
 router = APIRouter()
 router.include_router(v1_router, tags=["v1"])
-router.include_router(legacy_router, tags=["legacy"])
 ```
 
 ### Settings для versioning:

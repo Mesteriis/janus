@@ -4,7 +4,7 @@ import pytest
 
 
 def test_docker_ctl_start_stop_status(monkeypatch):
-    from app import docker_ctl
+    from backend import docker_ctl
 
     class DummyContainer:
         def __init__(self):
@@ -81,7 +81,7 @@ def test_docker_ctl_start_stop_status(monkeypatch):
 
 
 def test_docker_ctl_start_requires_token(monkeypatch, reload_settings):
-    from app import docker_ctl
+    from backend import docker_ctl
 
     monkeypatch.setenv("CLOUDFLARE_TUNNEL_TOKEN", "")
     reload_settings()
@@ -91,6 +91,6 @@ def test_docker_ctl_start_requires_token(monkeypatch, reload_settings):
 
 
 def test_docker_ctl_client():
-    from app import docker_ctl
+    from backend import docker_ctl
 
     assert docker_ctl._client() is not None
