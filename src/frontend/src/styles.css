@@ -526,6 +526,123 @@ body {
   gap: 18px;
 }
 
+.cloudflare.inbound {
+  padding: 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(124, 58, 237, 0.28);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(124, 58, 237, 0.2), transparent 38%),
+    linear-gradient(180deg, rgba(13, 17, 36, 0.82), rgba(12, 15, 31, 0.68));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 22px 44px rgba(7, 10, 24, 0.45);
+}
+
+.cloudflare.inbound > .section-header {
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(124, 58, 237, 0.2);
+}
+
+.inbound-tabs {
+  display: inline-flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 6px;
+  border-radius: 14px;
+  border: 1px solid rgba(124, 58, 237, 0.24);
+  background: rgba(10, 13, 28, 0.64);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 10px 24px rgba(8, 11, 24, 0.38);
+}
+
+.inbound-tabs .ghost {
+  border: 1px solid transparent;
+  background: transparent;
+  color: rgba(236, 240, 255, 0.78);
+  border-radius: 10px;
+  padding: 8px 14px;
+  letter-spacing: 0.01em;
+}
+
+.inbound-tabs .ghost.active {
+  border-color: rgba(168, 140, 255, 0.75);
+  color: #f5f1ff;
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.52), rgba(124, 58, 237, 0.22));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 8px 18px rgba(124, 58, 237, 0.34);
+}
+
+.inbound-grid {
+  grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.1fr);
+}
+
+.cloudflare-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 4px;
+}
+
+.vpn-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 4px;
+}
+
+.vpn-stack > .panel,
+.cloudflare-stack > .panel {
+  border-color: rgba(124, 58, 237, 0.25);
+  background:
+    linear-gradient(140deg, rgba(25, 34, 63, 0.84), rgba(19, 23, 44, 0.66));
+}
+
+.vpn-stack > .routes-grid .route-card,
+.cloudflare-stack > .panel .route-card {
+  border-color: rgba(124, 58, 237, 0.24);
+  background:
+    linear-gradient(140deg, rgba(23, 30, 58, 0.86), rgba(18, 22, 43, 0.75));
+}
+
+.cloudflare.inbound .routes-grid {
+  gap: 16px;
+}
+
+.inbound-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.key-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.key-toggle span:first-child {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 8px;
+  background: var(--surface-muted);
+}
+
+.token-panel {
+  max-width: 920px;
+}
+
+.tunnels-panel {
+  width: 100%;
+}
+
 .cloudflare-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(260px, 0.8fr);
@@ -1061,6 +1178,13 @@ textarea {
   font-weight: 500;
 }
 
+.checkbox-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+}
+
 .advanced {
   border-radius: 18px;
   padding: 0;
@@ -1075,6 +1199,14 @@ textarea {
   margin-bottom: 12px;
   transform: translateY(2px);
   transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.advanced.always-open {
+  transform: translateY(0);
+  box-shadow:
+    0 12px 28px rgba(6, 8, 18, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  border-color: rgba(124, 58, 237, 0.28);
 }
 
 .advanced summary {
@@ -1115,8 +1247,62 @@ textarea {
   border-bottom-color: rgba(124, 58, 237, 0.35);
 }
 
+.accordion-summary {
+  font-weight: 700;
+  display: grid;
+  grid-template-columns: 1fr 28px;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.22), rgba(20, 22, 44, 0.12));
+  border-bottom: 1px solid rgba(124, 58, 237, 0.35);
+}
+
 .advanced > *:not(summary) {
   padding: 12px 16px 16px;
+}
+
+.advanced.always-open > * {
+  padding: 0;
+}
+
+.advanced.always-open .advanced-body {
+  padding: 12px 16px 16px;
+}
+
+.route-form-edit .advanced-grid.edit-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.route-form-edit .advanced-grid.edit-grid .section-overrides {
+  grid-column: 1 / -1;
+}
+
+.route-form-edit .advanced-grid.edit-grid .section-proxy,
+.route-form-edit .advanced-grid.edit-grid .section-health,
+.route-form-edit .advanced-grid.edit-grid .section-transport {
+  grid-column: span 2;
+}
+
+.route-form-edit .accordion-summary {
+  padding: 14px 18px;
+  grid-template-columns: minmax(0, 1fr) 28px;
+  align-items: start;
+  gap: 12px;
+}
+
+.route-form-edit .accordion-summary span {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+}
+
+.route-form-edit .advanced.always-open .advanced-body {
+  padding: 14px 18px 18px;
 }
 
 .advanced[open] {
@@ -1242,6 +1428,30 @@ textarea {
   overflow: auto;
 }
 
+.route-edit-modal {
+  max-width: 1440px;
+  width: min(96vw, 1440px);
+  max-height: 90vh;
+  overflow: auto;
+}
+
+@media (max-width: 1360px) {
+  .route-form-edit .advanced-grid.edit-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .route-form-edit .advanced-grid.edit-grid .section-proxy,
+  .route-form-edit .advanced-grid.edit-grid .section-health,
+  .route-form-edit .advanced-grid.edit-grid .section-transport {
+    grid-column: span 1;
+  }
+}
+
+@media (max-width: 1080px) {
+  .route-form-edit .advanced-grid.edit-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .modal h3 {
   margin: 0;
 }
@@ -1348,6 +1558,9 @@ textarea {
   .converter-grid {
     grid-template-columns: 1fr;
   }
+  .route-form-edit .advanced-grid.edit-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 600px) {
@@ -1357,4 +1570,57 @@ textarea {
   .stats {
     grid-template-columns: 1fr;
   }
+  .cloudflare.inbound {
+    padding: 14px;
+    border-radius: 16px;
+  }
+  .inbound-tabs {
+    width: 100%;
+  }
+  .inbound-tabs .ghost {
+    flex: 1 1 calc(50% - 8px);
+    justify-content: center;
+  }
+}
+
+.caddy-runtime .progress-wrap {
+  position: relative;
+  width: 100%;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.caddy-runtime .progress-bar {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #10b981, #22d3ee);
+  transition: width 0.25s ease;
+}
+
+.caddy-runtime .addons-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+}
+
+.caddy-runtime .addon-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.caddy-runtime .addon-item span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.caddy-runtime .subtle {
+  margin-top: 12px;
 }

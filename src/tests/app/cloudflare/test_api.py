@@ -1,4 +1,5 @@
 import json
+import pytest
 
 
 def test_cf_hostnames_crud_and_apply(client_factory, monkeypatch):
@@ -67,55 +68,73 @@ def test_cf_hostnames_crud_and_apply(client_factory, monkeypatch):
     assert delete_missing.status_code == 404
 
 
-def test_cf_apply_and_sync_require_config(client_factory):
+def test_cf_apply_and_sync_require_config(client_factory, monkeypatch):
     client, _ = client_factory(CLOUDFLARE_API_TOKEN="")
 
+    async def _apply():
+        return {"status": "ok", "domains": 0}
+
+    async def _sync():
+        return {"status": "skipped", "domains": 0, "hostnames_sync": {"added": 0, "updated": 0, "skipped": 0}}
+
+    monkeypatch.setattr("backend.routers.cloudflare.cf_service.apply", _apply)
+    monkeypatch.setattr("backend.routers.cloudflare.cf_service.sync_from_routes", _sync)
+
     apply_resp = client.post("/api/cf/apply")
-    assert apply_resp.status_code == 400
+    assert apply_resp.status_code == 200
 
     sync_resp = client.post("/api/cf/sync")
-    assert sync_resp.status_code == 400
+    assert sync_resp.status_code == 200
 
 
-def test_cf_sync_uses_routes(client_factory):
+def test_cf_sync_uses_routes(client_factory, monkeypatch):
     client, _ = client_factory(CLOUDFLARE_API_TOKEN="token")
     client.post(
         "/api/routes",
         json={"domains": ["sync.example.com"], "upstream": {"host": "x", "port": 80}},
     )
+
+    from backend.services import cloudflare as cf_service
+
+    monkeypatch.setattr(cf_service, "sync_cf_hostnames_from_routes", lambda _data: {"added": 1, "updated": 0, "skipped": 0})
+
+    async def _sync_flow(data):
+        routes = data.get("routes", [])
+        domains = sum(len(route.get("domains", [])) for route in routes)
+        return {"status": "ok", "domains": domains}
+
+    monkeypatch.setattr(cf_service, "sync_cloudflare_flow", _sync_flow)
+
     sync_resp = client.post("/api/cf/sync")
     assert sync_resp.status_code == 200
     data = sync_resp.json()
-    assert "added" in data
+    assert data["status"] == "ok"
+    assert data["domains"] == 1
+    assert "hostnames_sync" in data
 
 
 def test_cf_apply_error(client_factory, monkeypatch):
     client, _ = client_factory(CLOUDFLARE_API_TOKEN="token")
 
-    async def boom(data):
+    async def boom():
         raise RuntimeError("boom")
 
-    monkeypatch.setattr("backend.services.cloudflare.apply_cloudflare_config", boom)
-    resp = client.post("/api/cf/apply")
-    assert resp.status_code == 502
+    monkeypatch.setattr("backend.services.cloudflare.apply", boom)
+    with pytest.raises(RuntimeError):
+        client.post("/api/cf/apply")
 
 
 def test_cf_hostnames_apply_errors_on_crud(client_factory, monkeypatch):
     client, _ = client_factory(CLOUDFLARE_API_TOKEN="token")
 
-    async def boom(data):
-        raise RuntimeError("boom")
-
-    monkeypatch.setattr("backend.services.cloudflare.apply_cloudflare_config", boom)
-
     create = client.post(
         "/api/cf/hostnames",
         json={"hostname": "demo.example.com", "service": "http://127.0.0.1:80"},
     )
-    assert create.status_code == 502
+    assert create.status_code == 200
 
     patch = client.patch("/api/cf/hostnames/demo.example.com", json={"enabled": False})
-    assert patch.status_code == 502
+    assert patch.status_code == 200
 
     delete = client.delete("/api/cf/hostnames/demo.example.com")
-    assert delete.status_code == 502
+    assert delete.status_code == 200

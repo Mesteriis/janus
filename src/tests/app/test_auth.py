@@ -11,21 +11,28 @@ def test_auth_status_disabled(client_factory):
 
 def test_auth_enabled_requires_cookie(client_factory, tmp_path):
     password_file = tmp_path / "auth.txt"
-    password_file.write_text("secret", encoding="utf-8")
     client, _ = client_factory(AUTH_PASSWORD_FILE=str(password_file))
+    enable = client.put("/api/auth/config", json={"enabled": True, "password": "secret"})
+    assert enable.status_code == 200
+    logout = client.post("/api/auth/logout")
+    assert logout.status_code == 200
 
     resp = client.get("/api/routes")
     assert resp.status_code == 401
 
-    client.cookies.set("janus_auth", "secret")
+    login = client.post("/api/auth/login", json={"password": "secret"})
+    assert login.status_code == 200
+
     resp2 = client.get("/api/routes")
     assert resp2.status_code == 200
 
 
 def test_auth_login_and_logout(client_factory, tmp_path):
     password_file = tmp_path / "auth.txt"
-    password_file.write_text("secret", encoding="utf-8")
     client, _ = client_factory(AUTH_PASSWORD_FILE=str(password_file))
+    enable = client.put("/api/auth/config", json={"enabled": True, "password": "secret"})
+    assert enable.status_code == 200
+    client.post("/api/auth/logout")
 
     bad = client.post("/api/auth/login", json={"password": "nope"})
     assert bad.status_code == 401
@@ -48,8 +55,10 @@ def test_auth_login_and_logout(client_factory, tmp_path):
 
 def test_auth_login_payload_validation(client_factory, tmp_path):
     password_file = tmp_path / "auth.txt"
-    password_file.write_text("secret", encoding="utf-8")
     client, _ = client_factory(AUTH_PASSWORD_FILE=str(password_file))
+    enable = client.put("/api/auth/config", json={"enabled": True, "password": "secret"})
+    assert enable.status_code == 200
+    client.post("/api/auth/logout")
 
     empty = client.post("/api/auth/login", json={})
     assert empty.status_code == 400
@@ -83,8 +92,10 @@ def test_auth_password_read_error(monkeypatch, tmp_path):
 
 def test_auth_options_passes_through(client_factory, tmp_path):
     password_file = tmp_path / "auth.txt"
-    password_file.write_text("secret", encoding="utf-8")
     client, _ = client_factory(AUTH_PASSWORD_FILE=str(password_file))
+    enable = client.put("/api/auth/config", json={"enabled": True, "password": "secret"})
+    assert enable.status_code == 200
+    client.post("/api/auth/logout")
 
     resp = client.options("/api/routes")
     assert resp.status_code == 405
@@ -97,7 +108,8 @@ def test_auth_config_enable_disable(client_factory, tmp_path):
     enable = client.put("/api/auth/config", json={"enabled": True, "password": "secret"})
     assert enable.status_code == 200
     assert enable.json()["enabled"] is True
-    assert password_file.read_text(encoding="utf-8").strip() == "secret"
+    stored = password_file.read_text(encoding="utf-8").strip()
+    assert stored != "secret"
 
     status = client.get("/api/auth/status")
     assert status.status_code == 200
@@ -111,8 +123,10 @@ def test_auth_config_enable_disable(client_factory, tmp_path):
 
 def test_auth_config_disable_requires_password(client_factory, tmp_path):
     password_file = tmp_path / "auth.txt"
-    password_file.write_text("secret", encoding="utf-8")
     client, _ = client_factory(AUTH_PASSWORD_FILE=str(password_file))
+    enable = client.put("/api/auth/config", json={"enabled": True, "password": "secret"})
+    assert enable.status_code == 200
+    client.post("/api/auth/logout")
 
     resp = client.put("/api/auth/config", json={"enabled": False})
     assert resp.status_code == 401
@@ -142,7 +156,7 @@ def test_set_password_stat_error(monkeypatch, tmp_path):
 
     monkeypatch.setattr(Path, "stat", _stat)
     auth.set_password("secret")
-    assert auth._cache["value"] == "secret"
+    assert auth._cache["value"].startswith("pbkdf2_sha256$")
 
 
 def test_set_password_unlink_error(monkeypatch, tmp_path):

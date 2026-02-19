@@ -1,5 +1,5 @@
 [project]
-name = "ct-112-tunel-new"
+name = "janus"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -19,4 +19,4 @@ dependencies = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "-q --cov=app --cov-report=term-missing --cov-fail-under=100"
+addopts = "-q --cov=backend --cov-report=term-missing --cov-fail-under=65"

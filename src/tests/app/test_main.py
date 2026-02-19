@@ -3,9 +3,26 @@ import importlib
 from fastapi.testclient import TestClient
 
 
-def test_index_returns_503_when_missing(client_factory):
+def test_index_returns_503_when_missing(client_factory, monkeypatch, tmp_path):
     client, _ = client_factory()
-    resp = client.get("/")
+
+    import app.settings as settings
+    importlib.reload(settings)
+
+    empty_base = tmp_path / "base"
+    (empty_base / "templates").mkdir(parents=True, exist_ok=True)
+    empty_static = tmp_path / "static"
+    empty_static.mkdir(parents=True, exist_ok=True)
+
+    monkeypatch.setattr(settings, "BASE_DIR", empty_base)
+    monkeypatch.setattr(settings, "STATIC_DIR", empty_static)
+
+    import app.main as main
+
+    importlib.reload(main)
+    test_client = TestClient(main.create_app())
+
+    resp = test_client.get("/")
     assert resp.status_code == 503
 
 

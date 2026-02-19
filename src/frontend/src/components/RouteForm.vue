@@ -1,28 +1,111 @@
 <template>
-  <form @submit.prevent="submit" class="route-form" novalidate>
+  <form @submit.prevent="submit" :class="['route-form', { 'route-form-edit': editing }]" novalidate>
     <div class="field">
       <label for="domains">Домены</label>
       <input id="domains" v-model="form.domains" type="text" placeholder="app.sh-inc.ru, *.example.com" required />
-      <small>Через запятую. Wildcard (*.) можно включить переключателем ниже.</small>
+      <small>Через запятую. Для wildcard указывайте сразу: `*.example.com`.</small>
     </div>
 
+    <small>Новый маршрут создается включенным. Включение/отключение доступно в карточке маршрута.</small>
     <div class="field inline">
       <label class="toggle">
-        <input type="checkbox" v-model="form.wildcard" />
-        <span>Авто-wildcard</span>
-      </label>
-      <label class="toggle">
-        <input type="checkbox" v-model="form.enabled" />
-        <span>Включен</span>
+        <input type="checkbox" v-model="form.tlsEnabled" />
+        <span>Выпускать SSL сертификат</span>
       </label>
     </div>
-    <small>Авто‑wildcard добавляет `*.` к каждому домену. Выключенный маршрут не применяется.</small>
+    <small>Если выключено, для этого домена будет только HTTP (в Caddy добавляется `tls off`).</small>
 
-    <details class="advanced" :open="openSection === 'overrides'" @toggle="onToggle('overrides', $event)">
-      <summary class="accordion-summary">
-        <span>Переопределения путей</span>
-        <button class="icon-btn small" type="button" @click.stop="openInfo('overrides')" aria-label="Что такое переопределения путей">i</button>
-      </summary>
+    <section class="override-item">
+      <div class="field">
+        <label>Куда перенаправить</label>
+        <div class="field inline">
+          <label class="toggle">
+            <input type="radio" value="proxy" v-model="form.mode" />
+            <span>Прокси</span>
+          </label>
+          <label class="toggle">
+            <input type="radio" value="redirect" v-model="form.mode" />
+            <span>Редирект</span>
+          </label>
+          <label class="toggle">
+            <input type="radio" value="respond" v-model="form.mode" />
+            <span>Ответ</span>
+          </label>
+        </div>
+      </div>
+
+      <div v-if="form.mode === 'proxy'" class="overrides-list">
+        <div v-for="(up, idx) in form.upstreams" :key="idx" class="override-item">
+          <div class="row">
+            <select v-model="up.scheme">
+              <option value="http">http</option>
+              <option value="https">https</option>
+            </select>
+            <input v-model="up.host" type="text" placeholder="127.0.0.1" required />
+            <input v-model="up.port" type="number" min="1" max="65535" placeholder="8080" required />
+            <input
+              v-if="form.upstreams.length > 1"
+              v-model="up.weight"
+              type="number"
+              min="1"
+              max="100"
+              placeholder="1"
+            />
+          </div>
+          <div class="override-actions">
+            <span class="muted">Апстрим №{{ idx + 1 }}</span>
+            <button v-if="form.upstreams.length > 1" type="button" class="ghost" @click="removeUpstream(idx)">
+              Удалить
+            </button>
+          </div>
+        </div>
+        <button class="ghost" type="button" @click="addUpstream">Добавить апстрим</button>
+        <div v-if="form.upstreams.length > 1" class="field">
+          <label for="lb-policy">Балансировка</label>
+          <select id="lb-policy" v-model="form.lbPolicy">
+            <option value="round_robin">По кругу (round_robin)</option>
+            <option value="least_conn">Меньше соединений (least_conn)</option>
+            <option value="random">Случайно (random)</option>
+            <option value="ip_hash">По IP (ip_hash)</option>
+          </select>
+        </div>
+      </div>
+
+      <div v-if="form.mode === 'redirect'" class="row">
+        <input v-model="form.redirectLocation" type="text" placeholder="https://example.com" />
+        <input v-model="form.redirectCode" type="number" min="100" max="599" placeholder="302" />
+      </div>
+
+      <div v-if="form.mode === 'respond'">
+        <div class="row">
+          <input v-model="form.respondStatus" type="number" min="100" max="599" placeholder="200" />
+          <input v-model="form.respondContentType" type="text" placeholder="text/plain" />
+        </div>
+        <textarea v-model="form.respondBody" rows="2" placeholder="Тело ответа"></textarea>
+      </div>
+    </section>
+
+    <div class="advanced-grid" :class="{ 'edit-grid': editing }">
+    <component
+      :is="editing ? 'section' : 'details'"
+      class="advanced section-overrides"
+      :class="{ 'always-open': editing }"
+      :open="editing || openSection === 'overrides'"
+      @toggle="!editing && onToggle('overrides', $event)"
+    >
+      <template v-if="editing">
+        <div class="accordion-summary">
+          <span>Переопределения путей</span>
+          <button class="icon-btn small" type="button" @click.stop="openInfo('overrides')" aria-label="Что такое переопределения путей">i</button>
+        </div>
+      </template>
+      <template v-else>
+        <summary class="accordion-summary">
+          <span>Переопределения путей</span>
+          <button class="icon-btn small" type="button" @click.stop="openInfo('overrides')" aria-label="Что такое переопределения путей">i</button>
+        </summary>
+      </template>
+      <div class="advanced-body">
       <div class="field">
         <small>Дополнительные правила для отдельных путей внутри домена.</small>
       </div>
@@ -110,91 +193,29 @@
       <div class="overrides-list">
         <button class="ghost" type="button" @click="addOverride">Добавить путь</button>
       </div>
-    </details>
+      </div>
+    </component>
 
-    <details class="advanced" :open="openSection === 'behavior'" @toggle="onToggle('behavior', $event)">
-      <summary class="accordion-summary">
-        <span>Поведение</span>
-        <button class="icon-btn small" type="button" @click.stop="openInfo('behavior')" aria-label="Что такое поведение">i</button>
-      </summary>
-      <div class="field">
-        <label>Режим маршрута</label>
-        <div class="field inline">
-          <label class="toggle">
-            <input type="radio" value="proxy" v-model="form.mode" />
-            <span>Прокси</span>
-          </label>
-          <label class="toggle">
-            <input type="radio" value="redirect" v-model="form.mode" />
-            <span>Редирект</span>
-          </label>
-          <label class="toggle">
-            <input type="radio" value="respond" v-model="form.mode" />
-            <span>Ответ</span>
-          </label>
+    <component
+      :is="editing ? 'section' : 'details'"
+      class="advanced section-matchers"
+      :class="{ 'always-open': editing }"
+      :open="editing || openSection === 'matchers'"
+      @toggle="!editing && onToggle('matchers', $event)"
+    >
+      <template v-if="editing">
+        <div class="accordion-summary">
+          <span>Условия маршрута</span>
+          <button class="icon-btn small" type="button" @click.stop="openInfo('matchers')" aria-label="Что такое условия маршрута">i</button>
         </div>
-        <small>Выберите, как обрабатывать запросы для всего маршрута.</small>
-      </div>
-      <div v-if="form.mode === 'redirect'" class="row">
-        <input v-model="form.redirectLocation" type="text" placeholder="Адрес перенаправления" />
-        <input v-model="form.redirectCode" type="number" min="100" max="599" placeholder="302" />
-      </div>
-      <div v-if="form.mode === 'respond'">
-        <div class="row">
-          <input v-model="form.respondStatus" type="number" min="100" max="599" placeholder="200" />
-          <input v-model="form.respondContentType" type="text" placeholder="Тип контента (text/plain)" />
-        </div>
-        <textarea v-model="form.respondBody" rows="2" placeholder="Тело ответа"></textarea>
-      </div>
-      <small v-if="form.mode === 'redirect'">Адрес и HTTP‑код перенаправления.</small>
-      <small v-else-if="form.mode === 'respond'">Статический ответ без обращения к апстриму.</small>
-    </details>
-
-    <details class="advanced" :open="openSection === 'upstreams'" @toggle="onToggle('upstreams', $event)">
-      <summary class="accordion-summary">
-        <span>Апстримы и балансировка</span>
-        <button class="icon-btn small" type="button" @click.stop="openInfo('upstreams')" aria-label="Что такое апстримы">i</button>
-      </summary>
-      <div class="overrides-list">
-        <div v-for="(up, idx) in form.upstreams" :key="idx" class="override-item">
-          <div class="row">
-            <select v-model="up.scheme">
-              <option value="http">http</option>
-              <option value="https">https</option>
-            </select>
-            <input v-model="up.host" type="text" placeholder="192.168.1.50" required />
-            <input v-model="up.port" type="number" min="1" max="65535" placeholder="8080" required />
-            <input v-model="up.weight" type="number" min="1" max="100" placeholder="1" />
-          </div>
-          <small>Протокол, адрес, порт и вес апстрима.</small>
-          <div class="override-actions">
-            <span class="muted">Апстрим №{{ idx + 1 }}</span>
-            <button type="button" class="ghost" @click="removeUpstream(idx)" :disabled="form.upstreams.length === 1">
-              Удалить
-            </button>
-          </div>
-        </div>
-      </div>
-      <div class="overrides-list">
-        <button class="ghost" type="button" @click="addUpstream">Добавить апстрим</button>
-      </div>
-      <div class="field">
-        <label for="lb-policy">Балансировка</label>
-        <select id="lb-policy" v-model="form.lbPolicy">
-          <option value="round_robin">По кругу (round_robin)</option>
-          <option value="least_conn">Меньше соединений (least_conn)</option>
-          <option value="random">Случайно (random)</option>
-          <option value="ip_hash">По IP (ip_hash)</option>
-        </select>
-        <small>Как распределять нагрузку между апстримами.</small>
-      </div>
-    </details>
-
-    <details class="advanced" :open="openSection === 'matchers'" @toggle="onToggle('matchers', $event)">
-      <summary class="accordion-summary">
-        <span>Условия маршрута</span>
-        <button class="icon-btn small" type="button" @click.stop="openInfo('matchers')" aria-label="Что такое условия маршрута">i</button>
-      </summary>
+      </template>
+      <template v-else>
+        <summary class="accordion-summary">
+          <span>Условия маршрута</span>
+          <button class="icon-btn small" type="button" @click.stop="openInfo('matchers')" aria-label="Что такое условия маршрута">i</button>
+        </summary>
+      </template>
+      <div class="advanced-body">
       <div class="field">
         <label for="methods">Методы запроса</label>
         <input id="methods" v-model="form.methods" type="text" placeholder="GET, POST" />
@@ -210,13 +231,29 @@
         ></textarea>
         <small>Каждая строка: `Заголовок: значение1 значение2`</small>
       </div>
-    </details>
+      </div>
+    </component>
 
-    <details class="advanced" :open="openSection === 'proxy'" @toggle="onToggle('proxy', $event)">
-      <summary class="accordion-summary">
-        <span>Опции прокси</span>
-        <button class="icon-btn small" type="button" @click.stop="openInfo('proxy')" aria-label="Что такое опции прокси">i</button>
-      </summary>
+    <component
+      :is="editing ? 'section' : 'details'"
+      class="advanced section-proxy"
+      :class="{ 'always-open': editing }"
+      :open="editing || openSection === 'proxy'"
+      @toggle="!editing && onToggle('proxy', $event)"
+    >
+      <template v-if="editing">
+        <div class="accordion-summary">
+          <span>Опции прокси</span>
+          <button class="icon-btn small" type="button" @click.stop="openInfo('proxy')" aria-label="Что такое опции прокси">i</button>
+        </div>
+      </template>
+      <template v-else>
+        <summary class="accordion-summary">
+          <span>Опции прокси</span>
+          <button class="icon-btn small" type="button" @click.stop="openInfo('proxy')" aria-label="Что такое опции прокси">i</button>
+        </summary>
+      </template>
+      <div class="advanced-body">
       <div class="field">
         <label for="max-body">Макс. тело (MB)</label>
         <input id="max-body" v-model="form.maxBody" type="number" min="0" placeholder="100" />
@@ -265,13 +302,29 @@
         </label>
       </div>
       <small>Включает буферизацию запросов и/или ответов.</small>
-    </details>
+      </div>
+    </component>
 
-    <details class="advanced" :open="openSection === 'health'" @toggle="onToggle('health', $event)">
-      <summary class="accordion-summary">
-        <span>Проверки здоровья</span>
-        <button class="icon-btn small" type="button" @click.stop="openInfo('health')" aria-label="Что такое проверки здоровья">i</button>
-      </summary>
+    <component
+      :is="editing ? 'section' : 'details'"
+      class="advanced section-health"
+      :class="{ 'always-open': editing }"
+      :open="editing || openSection === 'health'"
+      @toggle="!editing && onToggle('health', $event)"
+    >
+      <template v-if="editing">
+        <div class="accordion-summary">
+          <span>Проверки здоровья</span>
+          <button class="icon-btn small" type="button" @click.stop="openInfo('health')" aria-label="Что такое проверки здоровья">i</button>
+        </div>
+      </template>
+      <template v-else>
+        <summary class="accordion-summary">
+          <span>Проверки здоровья</span>
+          <button class="icon-btn small" type="button" @click.stop="openInfo('health')" aria-label="Что такое проверки здоровья">i</button>
+        </summary>
+      </template>
+      <div class="advanced-body">
       <div class="field">
         <label for="ha-path">Путь активной проверки</label>
         <input id="ha-path" v-model="form.healthActivePath" type="text" placeholder="/health" />
@@ -297,13 +350,29 @@
         <input v-model="form.healthPassiveFailDuration" type="text" placeholder="период отключения 30s" />
       </div>
       <small>Сколько ошибок и на какой срок исключать апстрим.</small>
-    </details>
+      </div>
+    </component>
 
-    <details class="advanced" :open="openSection === 'transport'" @toggle="onToggle('transport', $event)">
-      <summary class="accordion-summary">
-        <span>Транспорт</span>
-        <button class="icon-btn small" type="button" @click.stop="openInfo('transport')" aria-label="Что такое транспорт">i</button>
-      </summary>
+    <component
+      :is="editing ? 'section' : 'details'"
+      class="advanced section-transport"
+      :class="{ 'always-open': editing }"
+      :open="editing || openSection === 'transport'"
+      @toggle="!editing && onToggle('transport', $event)"
+    >
+      <template v-if="editing">
+        <div class="accordion-summary">
+          <span>Транспорт</span>
+          <button class="icon-btn small" type="button" @click.stop="openInfo('transport')" aria-label="Что такое транспорт">i</button>
+        </div>
+      </template>
+      <template v-else>
+        <summary class="accordion-summary">
+          <span>Транспорт</span>
+          <button class="icon-btn small" type="button" @click.stop="openInfo('transport')" aria-label="Что такое транспорт">i</button>
+        </summary>
+      </template>
+      <div class="advanced-body">
       <div class="row">
         <input v-model="form.transportDial" type="text" placeholder="таймаут подключения 5s" />
         <input v-model="form.transportKeepalive" type="text" placeholder="поддержание 60s" />
@@ -319,10 +388,12 @@
         <span>Не проверять TLS (tls_insecure_skip_verify)</span>
       </label>
       <small>Используйте только для тестовых окружений.</small>
-    </details>
+      </div>
+    </component>
+    </div>
     <div class="route-actions">
       <button class="primary" type="submit">
-        {{ editing ? 'Сохранить маршрут' : 'Создать маршрут' }}
+        {{ submitText }}
       </button>
       <button v-if="editing" class="ghost" type="button" @click="cancel">Отменить</button>
     </div>
@@ -352,11 +423,16 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  submitLabel: {
+    type: String,
+    default: '',
+  },
 })
 
 const emit = defineEmits(['submit', 'cancel'])
 
 const localError = ref('')
+const submitText = computed(() => props.submitLabel || (props.editing ? 'Сохранить маршрут' : 'Создать маршрут'))
 
 const emptyUpstream = () => ({
   scheme: 'http',
@@ -383,8 +459,8 @@ const emptyOverride = () => ({
 
 const form = reactive({
   domains: '',
-  wildcard: false,
   enabled: true,
+  tlsEnabled: true,
   methods: '',
   matchHeaders: '',
   upstreams: [emptyUpstream()],
@@ -527,8 +603,8 @@ function removeOverrideUpstream(overrideIndex, upstreamIndex) {
 function reset() {
   Object.assign(form, {
     domains: '',
-    wildcard: false,
     enabled: true,
+    tlsEnabled: true,
     methods: '',
     matchHeaders: '',
     upstreams: [emptyUpstream()],
@@ -584,6 +660,7 @@ function prefill(route) {
   const domains = Array.isArray(route.domains) ? route.domains : []
   form.domains = domains.join(', ')
   form.enabled = route.enabled !== false
+  form.tlsEnabled = route.tls_enabled !== false
   form.methods = (route.methods || []).join(', ')
   form.matchHeaders = headerValuesToLines(route.match_headers || route.matchHeaders || {})
   form.upstreams =
@@ -677,18 +754,13 @@ function buildRoutePayload() {
     .split(',')
     .map((domain) => domain.trim())
     .filter(Boolean)
-    .map((domain) => {
-      if (form.wildcard && !domain.startsWith('*.') && !domain.includes('*')) {
-        return `*.${domain}`
-      }
-      return domain
-    })
 
   const upstreams = buildUpstreams(form.upstreams)
 
   const payload = {
     domains,
-    enabled: form.enabled,
+    enabled: props.editing ? form.enabled : true,
+    tls_enabled: form.tlsEnabled !== false,
     methods: form.methods
       .split(',')
       .map((m) => m.trim().toUpperCase())

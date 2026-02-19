@@ -43,7 +43,7 @@
       </div>
       <nav class="tab-list" role="tablist" aria-label="Главные разделы">
         <button
-          v-for="tab in tabs"
+          v-for="tab in visibleTabs"
           :key="tab.id"
           class="tab-btn"
           type="button"
@@ -116,14 +116,20 @@
           />
 
           <aside class="panel">
-            <h2>{{ editingRoute ? 'Редактировать маршрут' : 'Добавить маршрут' }}</h2>
-            <RouteForm
-              ref="routeFormRef"
-              :error="routeError"
-              :editing="Boolean(editingRoute)"
-              @submit="submitRoute"
-              @cancel="cancelEdit"
-            />
+            <template v-if="!editingRoute">
+              <h2>Добавить маршрут</h2>
+              <RouteForm
+                ref="routeFormRef"
+                :error="routeError"
+                :editing="false"
+                submit-label="Создать маршрут"
+                @submit="submitRoute"
+              />
+            </template>
+            <template v-else>
+              <h2>Редактирование открыто</h2>
+              <p class="subtitle">Форма редактирования открыта в модальном окне.</p>
+            </template>
           </aside>
         </main>
       </section>
@@ -144,6 +150,79 @@
         />
       </section>
 
+      <section v-show="activeTab === 'inbound'" class="tab-panel">
+        <InboundSection
+          :cloudflare="inbound.cloudflare"
+          :vpn="inbound.vpn"
+          :tunnel-enabled="features.tunnelEnabled"
+          :vpn-enabled="features.vpnEnabled"
+          :vpn-client-config="vpnClientConfig"
+          :vpn-link-config="vpnLinkConfig"
+          :loading="loadingInbound"
+          :saving="inboundSaving"
+          :error="inboundError"
+          @refresh="loadInbound"
+          @save-token="saveInboundCloudflareToken"
+          @clear-token="clearInboundCloudflareToken"
+          @delete-tunnel="deleteInboundTunnel"
+          @start-tunnel="startInboundTunnel"
+          @create-vpn-server="createVpnServer"
+          @start-vpn-server="startVpnServer"
+          @stop-vpn-server="stopVpnServer"
+          @delete-vpn-server="deleteVpnServer"
+          @add-vpn-client="addVpnClient"
+          @show-vpn-client-config="showVpnClientConfig"
+          @close-vpn-client-config="closeVpnClientConfig"
+          @create-vpn-link="createVpnLink"
+          @start-vpn-link="startVpnLink"
+          @stop-vpn-link="stopVpnLink"
+          @delete-vpn-link="deleteVpnLink"
+          @show-vpn-link-config="showVpnLinkConfig"
+          @close-vpn-link-config="closeVpnLinkConfig"
+        />
+      </section>
+
+      <section v-show="activeTab === 'settings'" class="tab-panel">
+        <section class="panel">
+          <div class="section-header">
+            <div>
+              <h2>Runtime Settings</h2>
+              <p class="subtitle">Изменения применяются сразу и сохраняются в JSON-файл.</p>
+            </div>
+            <div class="cf-actions">
+              <button class="ghost" type="button" @click="loadRuntimeSettings" :disabled="loadingSettings || savingSettings">
+                Обновить
+              </button>
+              <button class="primary" type="button" @click="saveRuntimeFeatures" :disabled="loadingSettings || savingSettings">
+                Сохранить
+              </button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Файл настроек</label>
+            <code>{{ runtimeSettingsFile || 'n/a' }}</code>
+          </div>
+          <div class="row">
+            <label class="checkbox-inline">
+              <input v-model="settingsForm.tunnelEnabled" type="checkbox" />
+              <span>Cloudflare Tunnel функционал</span>
+            </label>
+          </div>
+          <div class="row">
+            <label class="checkbox-inline">
+              <input v-model="settingsForm.vpnEnabled" type="checkbox" />
+              <span>VPN функционал</span>
+            </label>
+          </div>
+          <small>При отключении модуль скрывается на фронте, а API отвечает 404.</small>
+          <div class="field">
+            <label>Текущий JSON</label>
+            <textarea :value="runtimeSettingsJson" rows="12" readonly spellcheck="false"></textarea>
+          </div>
+          <p v-if="settingsError" class="error">{{ settingsError }}</p>
+        </section>
+      </section>
+
       <section v-show="activeTab === 'configs'" class="tab-panel">
         <L4RoutesSection
           :routes="l4Routes"
@@ -160,18 +239,17 @@
         <section class="panel plugin-panel">
           <div class="section-header">
             <div>
-              <h2>Настройки плагинов</h2>
-              <p class="subtitle">Глобальные параметры (prometheus, trace, geoip, cache, tlsredis, s3, security, crowdsec, realip).</p>
+              <h2>Caddyfile</h2>
+              <p class="subtitle">Текущий режим без встроенного Caddy-контейнера: загрузите свой Caddyfile или создайте стандартный из маршрутов.</p>
             </div>
             <div class="cf-actions">
-              <button class="ghost" type="button" @click="openRawModal">Показать raw</button>
-              <button class="ghost" type="button" @click="loadPlugins" :disabled="loadingPlugins">Обновить</button>
-              <button class="primary" type="button" @click="savePlugins" :disabled="loadingPlugins">Сохранить</button>
+              <button class="ghost" type="button" @click="loadCaddyfile" :disabled="caddyfileBusy">Обновить</button>
+              <button class="ghost" type="button" @click="applyDefaultCaddyfile" :disabled="caddyfileBusy">Стандартный</button>
+              <button class="primary" type="button" @click="saveCustomCaddyfile" :disabled="caddyfileBusy">Сохранить</button>
             </div>
           </div>
-          <PluginSettingsCards :model="pluginsModel" />
-          <small>Взаимоисключающие опции: cache.engine = souin | cache_handler; s3storage vs tlsredis по желанию.</small>
-          <p class="error">{{ pluginsError }}</p>
+          <textarea v-model="caddyfileText" rows="20" spellcheck="false" placeholder="Вставьте ваш Caddyfile"></textarea>
+          <small>Кнопка «Применить» в разделе «Тунели» теперь только сохраняет Caddyfile из текущих маршрутов.</small>
         </section>
       </section>
 
@@ -184,6 +262,10 @@
           @update:caddy-input="caddyInput = $event"
           @convert="convertCaddyfile"
         />
+      </section>
+
+      <section v-show="activeTab === 'caddy-runtime'" class="tab-panel">
+        <CaddyRuntimeSection />
       </section>
     </div>
   </div>
@@ -213,6 +295,20 @@
     @close="closeRawModal"
   />
 
+  <div v-if="editingRoute" class="modal-backdrop" @click.self="cancelEdit">
+    <div class="modal route-edit-modal">
+      <h3>Редактировать маршрут</h3>
+      <RouteForm
+        ref="editRouteFormRef"
+        :error="routeError"
+        :editing="true"
+        submit-label="Сохранить маршрут"
+        @submit="submitRoute"
+        @cancel="cancelEdit"
+      />
+    </div>
+  </div>
+
   <div v-if="authConfigOpen" class="modal-backdrop" @click.self="closeAuthConfig">
     <div class="modal">
       <h3>Включить авторизацию</h3>
@@ -236,10 +332,12 @@ import StatsCards from './components/StatsCards.vue'
 import RoutesSection from './components/RoutesSection.vue'
 import RouteForm from './components/RouteForm.vue'
 import CloudflareSection from './components/CloudflareSection.vue'
+import InboundSection from './components/InboundSection.vue'
 import PluginSettingsCards from './components/PluginSettingsCards.vue'
 import L4RoutesSection from './components/L4RoutesSection.vue'
 import RawConfigModal from './components/RawConfigModal.vue'
 import CaddyConverterSection from './components/CaddyConverterSection.vue'
+import CaddyRuntimeSection from './components/CaddyRuntimeSection.vue'
 import ToastBar from './components/ToastBar.vue'
 import ConfirmModal from './components/ConfirmModal.vue'
 import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from './services/api.js'
@@ -251,6 +349,20 @@ const tabs = [
     hint: 'Добавление и управление',
     title: 'Маршруты и добавления',
     subtitle: 'Управляйте доменами, wildcard и быстрыми правками без ручной правки config.',
+  },
+  {
+    id: 'inbound',
+    label: 'Входящие',
+    hint: 'Cloudflare / VPN',
+    title: 'Источники входящих',
+    subtitle: 'Cloudflare Tunnel и VPN как источники входящих соединений.',
+  },
+  {
+    id: 'settings',
+    label: 'Настройки',
+    hint: 'Realtime flags',
+    title: 'Настройки системы',
+    subtitle: 'Управление runtime-настройками и включением модулей без перезапуска.',
   },
   {
     id: 'tunnels',
@@ -268,10 +380,10 @@ const tabs = [
   },
   {
     id: 'caddy',
-    label: 'Настройка Caddy',
-    hint: 'Плагины и Raw',
+    label: 'Caddyfile',
+    hint: 'Загрузка/дефолт',
     title: 'Настройка Caddy',
-    subtitle: 'Плагины, raw JSON5 и конвертер из Caddyfile.',
+    subtitle: 'Загрузка пользовательского Caddyfile или генерация стандартного конфига из маршрутов.',
   },
   {
     id: 'converter',
@@ -280,7 +392,15 @@ const tabs = [
     title: 'Конвертер Caddyfile',
     subtitle: 'Отдельный адаптер Caddyfile в JSON5 с быстрым предпросмотром.',
   },
+  {
+    id: 'caddy-runtime',
+    label: 'Caddy Runtime',
+    hint: 'Install / Monitor',
+    title: 'Caddy Runtime',
+    subtitle: 'Установка, запуск, мониторинг и логи контейнера Caddy.',
+  },
 ]
+const staticHiddenTabIds = new Set(['configs', 'caddy', 'converter'])
 const activeTab = ref('routes')
 
 const introVisible = ref(true)
@@ -309,7 +429,43 @@ const routes = ref([])
 const loadingRoutes = ref(true)
 const routeError = ref('')
 const routeFormRef = ref(null)
+const editRouteFormRef = ref(null)
 const editingRoute = ref(null)
+const features = reactive({
+  tunnelEnabled: true,
+  vpnEnabled: true,
+  inboundEnabled: true,
+})
+const runtimeSettingsFile = ref('')
+const runtimeSettingsJson = ref('{}')
+const loadingSettings = ref(false)
+const savingSettings = ref(false)
+const settingsError = ref('')
+const settingsForm = reactive({
+  tunnelEnabled: true,
+  vpnEnabled: true,
+})
+
+function defaultInboundCloudflare() {
+  return {
+    token_present: false,
+    token_source: 'none',
+    token_file: '',
+    token_generation_url: 'https://dash.cloudflare.com/profile/api-tokens',
+    tunnels: [],
+  }
+}
+
+function defaultInboundVpn() {
+  return {
+    status: 'not_configured',
+    message: 'VPN серверы не созданы',
+    data_dir: '',
+    state_file: '',
+    servers: [],
+    links: [],
+  }
+}
 
 const cf = reactive({
   configured: false,
@@ -319,12 +475,31 @@ const cf = reactive({
 })
 const loadingCf = ref(true)
 const cfError = ref('')
+const inbound = reactive({
+  cloudflare: defaultInboundCloudflare(),
+  vpn: defaultInboundVpn(),
+})
+const loadingInbound = ref(false)
+const inboundSaving = ref(false)
+const inboundError = ref('')
+const vpnClientConfig = reactive({
+  open: false,
+  title: '',
+  text: '',
+})
+const vpnLinkConfig = reactive({
+  open: false,
+  title: '',
+  text: '',
+})
 
 const rawRoutes = ref('')
 const rawConfig = ref('')
 const loadingRaw = ref(true)
 const rawError = ref('')
 const caddyInput = ref('')
+const caddyfileText = ref('')
+const caddyfileBusy = ref(false)
 const convertResult = ref('')
 const converting = ref(false)
 
@@ -362,9 +537,30 @@ const activeCount = computed(() => routes.value.filter((route) => route.enabled)
 const disabledCount = computed(() => routes.value.length - activeCount.value)
 const cfStatusText = computed(() => (cf.configured ? 'Подключено' : 'Нет API'))
 const cfStatusClass = computed(() => (cf.configured ? 'ok' : 'warn'))
-const activeTabMeta = computed(() => tabs.find((tab) => tab.id === activeTab.value) || tabs[0])
+const hiddenTabIds = computed(() => {
+  const hidden = new Set(staticHiddenTabIds)
+  if (!features.tunnelEnabled) {
+    hidden.add('tunnels')
+  }
+  if (!features.inboundEnabled) {
+    hidden.add('inbound')
+  }
+  return hidden
+})
+const visibleTabs = computed(() => tabs.filter((tab) => !hiddenTabIds.value.has(tab.id)))
+const activeTabMeta = computed(() => tabs.find((tab) => tab.id === activeTab.value) || visibleTabs.value[0] || tabs[0])
 const rawCanApply = computed(
   () => rawValidated.value && rawModalRoutes.value === rawLastValidated.value && !rawApplyLoading.value
+)
+
+watch(
+  visibleTabs,
+  (nextTabs) => {
+    if (!nextTabs.some((tab) => tab.id === activeTab.value)) {
+      activeTab.value = nextTabs[0]?.id || 'routes'
+    }
+  },
+  { immediate: true }
 )
 
 watch(rawModalRoutes, (value) => {
@@ -550,12 +746,14 @@ async function loadRoutes() {
 
 function startEditRoute(route) {
   editingRoute.value = route
-  routeFormRef.value?.prefill(route)
+  nextTick(() => {
+    editRouteFormRef.value?.prefill(route)
+  })
 }
 
 function cancelEdit() {
   editingRoute.value = null
-  routeFormRef.value?.reset()
+  editRouteFormRef.value?.reset()
   routeError.value = ''
 }
 
@@ -741,6 +939,14 @@ async function deleteRoute(route) {
 }
 
 async function loadCf() {
+  if (!features.tunnelEnabled) {
+    cf.configured = false
+    cf.defaultService = ''
+    cf.hostnames = []
+    cf.fallback = ''
+    loadingCf.value = false
+    return
+  }
   loadingCf.value = true
   try {
     const data = await apiGet('/api/cf/hostnames')
@@ -755,10 +961,393 @@ async function loadCf() {
   }
 }
 
+async function loadInbound() {
+  if (!features.inboundEnabled) {
+    inbound.cloudflare = defaultInboundCloudflare()
+    applyVpnState(defaultInboundVpn())
+    loadingInbound.value = false
+    return
+  }
+
+  loadingInbound.value = true
+  inboundError.value = ''
+  try {
+    const tasks = []
+    if (features.tunnelEnabled) {
+      tasks.push(
+        apiGet('/api/inbound/cloudflare').then((cfInbound) => {
+          inbound.cloudflare = {
+            token_present: Boolean(cfInbound?.token_present),
+            token_source: cfInbound?.token_source || 'none',
+            token_file: cfInbound?.token_file || '',
+            token_generation_url: cfInbound?.token_generation_url || 'https://dash.cloudflare.com/profile/api-tokens',
+            tunnels: cfInbound?.tunnels || [],
+          }
+        })
+      )
+    } else {
+      inbound.cloudflare = defaultInboundCloudflare()
+    }
+    if (features.vpnEnabled) {
+      tasks.push(
+        apiGet('/api/inbound/vpn').then((vpnInbound) => {
+          applyVpnState(vpnInbound || inbound.vpn)
+        })
+      )
+    } else {
+      applyVpnState(defaultInboundVpn())
+    }
+    await Promise.all(tasks)
+  } catch (error) {
+    inboundError.value = error.message || 'Ошибка загрузки входящих источников'
+  } finally {
+    loadingInbound.value = false
+  }
+}
+
+function applyFeatures(data) {
+  const tunnelEnabled = data?.tunnel_enabled !== false
+  const vpnEnabled = data?.vpn_enabled !== false
+  features.tunnelEnabled = tunnelEnabled
+  features.vpnEnabled = vpnEnabled
+  features.inboundEnabled = Boolean(data?.inbound_enabled ?? (tunnelEnabled || vpnEnabled))
+  settingsForm.tunnelEnabled = tunnelEnabled
+  settingsForm.vpnEnabled = vpnEnabled
+}
+
+async function loadRuntimeSettings() {
+  loadingSettings.value = true
+  settingsError.value = ''
+  try {
+    const data = await apiGet('/api/settings/runtime')
+    runtimeSettingsFile.value = data?.file || ''
+    runtimeSettingsJson.value = JSON.stringify(data?.settings || {}, null, 2)
+    applyFeatures(data?.features || data || {})
+  } catch (error) {
+    runtimeSettingsFile.value = ''
+    runtimeSettingsJson.value = '{}'
+    applyFeatures({})
+    settingsError.value = error.message || 'Не удалось загрузить runtime-настройки'
+  } finally {
+    loadingSettings.value = false
+  }
+}
+
+async function saveRuntimeFeatures() {
+  savingSettings.value = true
+  settingsError.value = ''
+  try {
+    const payload = {
+      tunnel_enabled: settingsForm.tunnelEnabled,
+      vpn_enabled: settingsForm.vpnEnabled,
+    }
+    const data = await apiPut('/api/settings/features', payload)
+    applyFeatures(data || {})
+    runtimeSettingsFile.value = data?.file || runtimeSettingsFile.value
+
+    if (features.tunnelEnabled) {
+      await loadCf()
+    } else {
+      cf.configured = false
+      cf.defaultService = ''
+      cf.hostnames = []
+      cf.fallback = ''
+    }
+
+    if (features.inboundEnabled) {
+      await loadInbound()
+    } else {
+      inbound.cloudflare = defaultInboundCloudflare()
+      applyVpnState(defaultInboundVpn())
+    }
+    await loadRuntimeSettings()
+    showToast('Настройки применены')
+  } catch (error) {
+    settingsError.value = error.message || 'Ошибка сохранения настроек'
+  } finally {
+    savingSettings.value = false
+  }
+}
+
+async function saveInboundCloudflareToken(token, done) {
+  const clean = String(token || '').trim()
+  if (!clean) {
+    inboundError.value = 'Укажите Cloudflare API token'
+    return
+  }
+  inboundSaving.value = true
+  inboundError.value = ''
+  try {
+    const data = await apiPut('/api/inbound/cloudflare/token', { token: clean })
+    inbound.cloudflare = {
+      token_present: Boolean(data?.token_present),
+      token_source: data?.token_source || 'file',
+      token_file: data?.token_file || inbound.cloudflare.token_file,
+      token_generation_url: data?.token_generation_url || inbound.cloudflare.token_generation_url,
+      tunnels: data?.tunnels || [],
+    }
+    done?.()
+    showToast('Cloudflare token сохранен')
+  } catch (error) {
+    inboundError.value = error.message || 'Ошибка сохранения токена'
+  } finally {
+    inboundSaving.value = false
+  }
+}
+
+async function clearInboundCloudflareToken() {
+  inboundSaving.value = true
+  inboundError.value = ''
+  try {
+    await apiDelete('/api/inbound/cloudflare/token')
+    await loadInbound()
+    showToast('Cloudflare token удален')
+  } catch (error) {
+    inboundError.value = error.message || 'Ошибка удаления токена'
+  } finally {
+    inboundSaving.value = false
+  }
+}
+
+async function deleteInboundTunnel(tunnel) {
+  const tunnelId = String(tunnel?.id || '').trim()
+  const accountId = String(tunnel?.account_id || '').trim()
+  if (!tunnelId) return
+  inboundSaving.value = true
+  inboundError.value = ''
+  try {
+    const query = accountId ? `?account_id=${encodeURIComponent(accountId)}` : ''
+    const data = await apiDelete(`/api/inbound/cloudflare/tunnels/${encodeURIComponent(tunnelId)}${query}`)
+    inbound.cloudflare = {
+      token_present: Boolean(data?.token_present),
+      token_source: data?.token_source || 'file',
+      token_file: data?.token_file || inbound.cloudflare.token_file,
+      token_generation_url: data?.token_generation_url || inbound.cloudflare.token_generation_url,
+      tunnels: data?.tunnels || [],
+    }
+    showToast(`Контейнер удален: ${tunnelId}`)
+  } catch (error) {
+    inboundError.value = error.message || 'Ошибка удаления контейнера'
+  } finally {
+    inboundSaving.value = false
+  }
+}
+
+async function startInboundTunnel(tunnel) {
+  const tunnelId = String(tunnel?.id || '').trim()
+  const accountId = String(tunnel?.account_id || '').trim()
+  if (!tunnelId) return
+  inboundSaving.value = true
+  inboundError.value = ''
+  try {
+    const query = accountId ? `?account_id=${encodeURIComponent(accountId)}` : ''
+    const data = await apiPost(`/api/inbound/cloudflare/tunnels/${encodeURIComponent(tunnelId)}/start${query}`, {})
+    const status = data?.status || {}
+    inbound.cloudflare = {
+      token_present: Boolean(status?.token_present),
+      token_source: status?.token_source || 'file',
+      token_file: status?.token_file || inbound.cloudflare.token_file,
+      token_generation_url: status?.token_generation_url || inbound.cloudflare.token_generation_url,
+      tunnels: status?.tunnels || [],
+    }
+    showToast(`Туннель запущен: ${tunnelId}`)
+  } catch (error) {
+    inboundError.value = error.message || 'Ошибка запуска туннеля'
+  } finally {
+    inboundSaving.value = false
+  }
+}
+
+function applyVpnState(data) {
+  inbound.vpn = {
+    status: data?.status || 'not_configured',
+    message: data?.message || 'VPN серверы не созданы',
+    data_dir: data?.data_dir || inbound.vpn.data_dir || '',
+    state_file: data?.state_file || inbound.vpn.state_file || '',
+    servers: data?.servers || [],
+    links: data?.links || [],
+  }
+}
+
+async function createVpnServer(name) {
+  inboundSaving.value = true
+  inboundError.value = ''
+  try {
+    const data = await apiPost('/api/inbound/vpn/servers', { name: String(name || '').trim() })
+    applyVpnState(data)
+    showToast('VPN сервер поднят')
+  } catch (error) {
+    inboundError.value = error.message || 'Ошибка создания VPN сервера'
+  } finally {
+    inboundSaving.value = false
+  }
+}
+
+async function startVpnServer(serverId) {
+  inboundSaving.value = true
+  inboundError.value = ''
+  try {
+    const data = await apiPost(`/api/inbound/vpn/servers/${encodeURIComponent(serverId)}/start`, {})
+    applyVpnState(data)
+    showToast('VPN сервер запущен')
+  } catch (error) {
+    inboundError.value = error.message || 'Ошибка запуска VPN сервера'
+  } finally {
+    inboundSaving.value = false
+  }
+}
+
+async function stopVpnServer(serverId) {
+  inboundSaving.value = true
+  inboundError.value = ''
+  try {
+    const data = await apiPost(`/api/inbound/vpn/servers/${encodeURIComponent(serverId)}/stop`, {})
+    applyVpnState(data)
+    showToast('VPN сервер остановлен')
+  } catch (error) {
+    inboundError.value = error.message || 'Ошибка остановки VPN сервера'
+  } finally {
+    inboundSaving.value = false
+  }
+}
+
+async function deleteVpnServer(serverId) {
+  inboundSaving.value = true
+  inboundError.value = ''
+  try {
+    const data = await apiDelete(`/api/inbound/vpn/servers/${encodeURIComponent(serverId)}`)
+    applyVpnState(data)
+    showToast('VPN сервер удален')
+  } catch (error) {
+    inboundError.value = error.message || 'Ошибка удаления VPN сервера'
+  } finally {
+    inboundSaving.value = false
+  }
+}
+
+async function addVpnClient(serverId, name) {
+  inboundSaving.value = true
+  inboundError.value = ''
+  try {
+    const data = await apiPost(`/api/inbound/vpn/servers/${encodeURIComponent(serverId)}/clients`, {
+      name: String(name || '').trim(),
+    })
+    applyVpnState(data)
+    showToast('VPN клиент добавлен')
+  } catch (error) {
+    inboundError.value = error.message || 'Ошибка добавления VPN клиента'
+  } finally {
+    inboundSaving.value = false
+  }
+}
+
+async function showVpnClientConfig(serverId, clientId) {
+  inboundSaving.value = true
+  inboundError.value = ''
+  try {
+    const data = await apiGet(`/api/inbound/vpn/servers/${encodeURIComponent(serverId)}/clients/${encodeURIComponent(clientId)}/config`)
+    vpnClientConfig.open = true
+    vpnClientConfig.title = `${data?.name || 'client'} (${data?.address || ''})`
+    vpnClientConfig.text = data?.config || ''
+  } catch (error) {
+    inboundError.value = error.message || 'Ошибка загрузки клиентского конфига'
+  } finally {
+    inboundSaving.value = false
+  }
+}
+
+function closeVpnClientConfig() {
+  vpnClientConfig.open = false
+  vpnClientConfig.title = ''
+  vpnClientConfig.text = ''
+}
+
+async function createVpnLink(name, config) {
+  inboundSaving.value = true
+  inboundError.value = ''
+  try {
+    const data = await apiPost('/api/inbound/vpn/links', {
+      name: String(name || '').trim(),
+      config: String(config || ''),
+    })
+    applyVpnState(data)
+    showToast('VPN подключение создано')
+  } catch (error) {
+    inboundError.value = error.message || 'Ошибка создания VPN подключения'
+  } finally {
+    inboundSaving.value = false
+  }
+}
+
+async function startVpnLink(linkId) {
+  inboundSaving.value = true
+  inboundError.value = ''
+  try {
+    const data = await apiPost(`/api/inbound/vpn/links/${encodeURIComponent(linkId)}/start`, {})
+    applyVpnState(data)
+    showToast('VPN подключение запущено')
+  } catch (error) {
+    inboundError.value = error.message || 'Ошибка запуска VPN подключения'
+  } finally {
+    inboundSaving.value = false
+  }
+}
+
+async function stopVpnLink(linkId) {
+  inboundSaving.value = true
+  inboundError.value = ''
+  try {
+    const data = await apiPost(`/api/inbound/vpn/links/${encodeURIComponent(linkId)}/stop`, {})
+    applyVpnState(data)
+    showToast('VPN подключение остановлено')
+  } catch (error) {
+    inboundError.value = error.message || 'Ошибка остановки VPN подключения'
+  } finally {
+    inboundSaving.value = false
+  }
+}
+
+async function deleteVpnLink(linkId) {
+  inboundSaving.value = true
+  inboundError.value = ''
+  try {
+    const data = await apiDelete(`/api/inbound/vpn/links/${encodeURIComponent(linkId)}`)
+    applyVpnState(data)
+    closeVpnLinkConfig()
+    showToast('VPN подключение удалено')
+  } catch (error) {
+    inboundError.value = error.message || 'Ошибка удаления VPN подключения'
+  } finally {
+    inboundSaving.value = false
+  }
+}
+
+async function showVpnLinkConfig(linkId) {
+  inboundSaving.value = true
+  inboundError.value = ''
+  try {
+    const data = await apiGet(`/api/inbound/vpn/links/${encodeURIComponent(linkId)}/config`)
+    vpnLinkConfig.open = true
+    vpnLinkConfig.title = `${data?.name || 'link'} (${data?.interface || ''})`
+    vpnLinkConfig.text = data?.config || ''
+  } catch (error) {
+    inboundError.value = error.message || 'Ошибка загрузки конфига VPN подключения'
+  } finally {
+    inboundSaving.value = false
+  }
+}
+
+function closeVpnLinkConfig() {
+  vpnLinkConfig.open = false
+  vpnLinkConfig.title = ''
+  vpnLinkConfig.text = ''
+}
+
 async function applyCf() {
   try {
     await apiPost('/api/cf/apply')
-    showToast('Cloudflare обновлен')
+    await loadCaddyfile()
+    showToast('Caddyfile сохранен')
   } catch (error) {
     showToast(error.message)
   }
@@ -766,11 +1355,53 @@ async function applyCf() {
 
 async function startCfDocker() {
   try {
-    await apiPost('/api/cf/docker/start', {})
-    showToast('Tunnel контейнер запущен')
-    await loadCf()
+    const data = await apiPost('/api/cf/docker/start', {})
+    showToast(data?.reason === 'tunnel_disabled' ? 'Tunnel временно отключен' : 'Tunnel контейнер запущен')
   } catch (error) {
     showToast(error.message)
+  }
+}
+
+async function loadCaddyfile() {
+  caddyfileBusy.value = true
+  try {
+    const data = await apiGet('/api/caddyfile')
+    caddyfileText.value = data?.content || ''
+  } catch (error) {
+    showToast(error.message)
+  } finally {
+    caddyfileBusy.value = false
+  }
+}
+
+async function applyDefaultCaddyfile() {
+  caddyfileBusy.value = true
+  try {
+    await apiPost('/api/caddyfile/default', {})
+    await loadCaddyfile()
+    showToast('Стандартный Caddyfile сохранен')
+  } catch (error) {
+    showToast(error.message)
+  } finally {
+    caddyfileBusy.value = false
+  }
+}
+
+async function saveCustomCaddyfile() {
+  const content = String(caddyfileText.value || '').trim()
+  if (!content) {
+    showToast('Caddyfile не должен быть пустым')
+    return
+  }
+  caddyfileBusy.value = true
+  try {
+    await apiPut('/api/caddyfile', { content })
+    await loadCaddyfile()
+    showToast('Пользовательский Caddyfile сохранен')
+  } catch (error) {
+    showToast(error.message)
+  } finally {
+    caddyfileBusy.value = false
   }
 }
 
@@ -909,6 +1540,7 @@ async function submitAuth() {
     authError.value = ''
     authFlipped.value = false
     authPassword.value = ''
+    await loadRuntimeSettings()
     bootstrapData()
     scheduleIdleTimer()
     window.setTimeout(() => {
@@ -981,6 +1613,7 @@ async function applyAuthConfig() {
 }
 
 async function initAuth() {
+  await loadRuntimeSettings()
   try {
     const status = await apiGet('/api/auth/status')
     authEnabled.value = Boolean(status.enabled)
@@ -1002,9 +1635,23 @@ async function initAuth() {
 function bootstrapData() {
   loadRoutes()
   loadRaw()
+  loadCaddyfile()
   loadPlugins()
   loadL4()
-  loadCf()
+  if (features.tunnelEnabled) {
+    loadCf()
+  } else {
+    cf.configured = false
+    cf.defaultService = ''
+    cf.hostnames = []
+    cf.fallback = ''
+  }
+  if (features.inboundEnabled) {
+    loadInbound()
+  } else {
+    inbound.cloudflare = defaultInboundCloudflare()
+    applyVpnState(defaultInboundVpn())
+  }
 }
 
 const introHintText = computed(() => {

@@ -1,4 +1,4 @@
-# ct-112-tunel-new
+# Janus
 
 Caddy + Dashboard (FastAPI + Vue 3) для управления маршрутами. Cloudflare Tunnel работает в режиме catch‑all:
 весь HTTP/HTTPS трафик по доменам и поддоменам направляется на Caddy, а исключения (например SSH) задаются отдельно.
@@ -10,7 +10,7 @@ Caddy + Dashboard (FastAPI + Vue 3) для управления маршрута
 
 ## Быстрый старт
 ```bash
-cd /Users/avm/projects/Personal/infra/ct-112-tunel-new
+cd /path/to/janus
 
 # 1) заполнить .env (см. шаблон)
 cp .env.example .env
@@ -20,6 +20,12 @@ docker compose up -d --build
 ```
 
 Dashboard будет доступен по `http://localhost:8090`.
+
+Если Docker Desktop сломал проброс портов на хосте, запускайте UI локально:
+```bash
+make ui-local
+```
+WebUI будет доступен по `http://127.0.0.1:8091`.
 
 ## Cloudflare Tunnel (catch‑all)
 Идея: **не добавляем домены по одному**. В Cloudflare Tunnel есть fallback‑правило, которое отправляет весь
@@ -53,10 +59,11 @@ Cloudflare Tunnel связывает один hostname с одним серви�
 Нажмите **«Применить»**.
 
 ## Маршруты Caddy
-Dashboard управляет `routes.json` и генерирует `config.json5` (JSON5-конфиг Caddy). Caddyfile больше не используется.
+Dashboard управляет `routes.json`, генерирует рабочий `Caddyfile` и дополнительный JSON-конфиг для проверки/совместимости.
 
-- Источник правды: `caddy/routes.json`
-- Генерируемый файл: `caddy/config.json5`
+- Источник правды: `data/caddy/routes.json`
+- Рабочий файл runtime: `data/caddy/Caddyfile`
+- Артефакт для проверки: `data/caddy/config.json5`
 
 ### Добавление маршрута
 1. Откройте dashboard.
@@ -71,6 +78,9 @@ Dashboard управляет `routes.json` и генерирует `config.json5
 
 ## Файлы и окружение
 - `DASHBOARD_PORT` — порт dashboard (по умолчанию `8090`).
+- `SETTINGS_JSON_FILE` — JSON-файл runtime-настроек, читается при старте.
+- `FEATURE_TUNNEL_ENABLED` — включает Cloudflare Tunnel функционал (UI + API).
+- `FEATURE_VPN_ENABLED` — включает VPN функционал (UI + API).
 - `CADDY_EMAIL` — email для ACME.
 - `ROUTES_FILE` и `CADDY_CONFIG` — пути к конфигурациям.
 - `CLOUDFLARE_TUNNEL_TOKEN` — токен для `cloudflared` в режиме `--token`.
@@ -80,9 +90,19 @@ Dashboard управляет `routes.json` и генерирует `config.json5
 - `CLOUDFLARE_STATE_FILE` — файл состояния CF (token + tunnels).
 - `CF_API_TOKEN` — токен для dns-01 в Caddy (если используете ACME через Cloudflare).
 
+Если `FEATURE_TUNNEL_ENABLED=false`, скрываются разделы Tunnel/Cloudflare и отключаются API `/api/cf/*` и `/api/inbound/cloudflare*`.
+Если `FEATURE_VPN_ENABLED=false`, скрывается VPN функционал и отключаются API `/api/inbound/vpn*`.
+Эти флаги можно менять в вкладке `Настройки` прямо в UI, изменения применяются сразу (realtime) и сохраняются в `SETTINGS_JSON_FILE`.
+
+Структура данных:
+- `data/caddy/` — только Caddy-артефакты (`Caddyfile`, `routes.json`, runtime state).
+- `data/cloudflare/` — Cloudflare state (`api_token.txt`, `hostnames.json`, `state.json`).
+- `data/settings/` — runtime settings (`app_settings.json`).
+- `data/vpn/` — WireGuard servers/links/state/archive.
+
 ## Docker Desktop (macOS/Windows)
-Файл `docker-compose.override.yaml` переводит сервисы на bridge‑сеть и пробрасывает порты
-`80`, `443`, `8090` на хост.
+Dashboard публикуется на хост как `0.0.0.0:${DASHBOARD_PORT:-8090}:8090`, поэтому интерфейс доступен по
+`http://localhost:8090` и по IP хоста (или вашему значению `DASHBOARD_PORT`).
 
 Значение по умолчанию для fallback:
 - Docker Desktop: `CLOUDFLARE_DEFAULT_SERVICE=http://caddy:80`
@@ -121,7 +141,7 @@ see layer4 docs; config собирается через XCADDY-плагин l4 (
 ```
 
 Примечание: docker-proxy пригодится на внешних Docker хостах (labels). crowdsec/appsec/geoip2 требуют собственных конфигов и данных (LAPI URL, mmdb). dynamicdns не включён; добавляйте опционально через xcaddy, если потребуется.
-Для tlsredis требуется сервис redis (добавлен в compose). GeoIP база ожидается в `./geoip/GeoLite2-City.mmdb` (volume в compose).
+`tlsredis` опционален и использует внешний Redis только если задан `tlsredis.address` (или `TLS_REDIS_ADDRESS`). По умолчанию Redis не требуется.
 
 ## Полезные команды
 ```bash

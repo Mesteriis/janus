@@ -379,6 +379,7 @@ def validate_route_payload(payload: Dict) -> Dict:
     return {
         "domains": domains,
         "enabled": bool(payload.get("enabled", True)),
+        "tls_enabled": bool(payload.get("tls_enabled", True)),
         "methods": methods,
         "match_headers": match_headers,
         "upstreams": validated_upstreams,

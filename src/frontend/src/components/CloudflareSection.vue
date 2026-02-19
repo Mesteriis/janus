@@ -54,7 +54,7 @@
       <p>
         Проверить токен: <code>curl -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" https://api.cloudflare.com/client/v4/accounts/verify</code>
       </p>
-      <p>После сохранения токена нажмите «Запустить tunnel». Контейнер <code>tunel-cloudflared</code> стартует в host сети и тянет конфиг из токена.</p>
+      <p>После сохранения токена нажмите «Запустить tunnel». Контейнер <code>janus-cloudflared</code> стартует в host сети и тянет конфиг из токена.</p>
       <div class="modal-actions">
         <button class="ghost" type="button" @click="showHelp = false">Закрыть</button>
       </div>

@@ -145,7 +145,7 @@ async def test_provision_after_routes_change_skip_trigger(monkeypatch):
         called["write"] += 1
 
     monkeypatch.setattr(provisioning, "write_and_validate_config", _write)
-    res = await provisioning.provision_after_routes_change({"routes": []}, provisioning.TRIGGER_PATCH)
+    res = await provisioning.provision_after_routes_change({"routes": []}, "unsupported")
     assert res["status"] == "skipped"
     assert called["write"] == 1
 
@@ -245,6 +245,21 @@ def test_ensure_tunnel_running_proxy(monkeypatch):
 
     monkeypatch.setattr(provisioning, "tunnel_service", Dummy)
     assert provisioning.ensure_tunnel_running()["status"] == "running"
+
+
+def test_ensure_tunnel_running_skips_legacy_token_error(monkeypatch):
+    from app.services import provisioning
+    from app.services.errors import ServiceError
+
+    class Dummy:
+        @staticmethod
+        def ensure_running():
+            raise ServiceError(400, "CLOUDFLARE_TUNNEL_TOKEN is empty")
+
+    monkeypatch.setattr(provisioning, "tunnel_service", Dummy)
+    result = provisioning.ensure_tunnel_running()
+    assert result["status"] == "skipped"
+    assert result["reason"] == "legacy_tunnel_token_not_configured"
 
 
 @pytest.mark.asyncio

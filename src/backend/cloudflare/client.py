@@ -267,17 +267,25 @@ class CloudFlare:
                 ordered.append({"hostname": hostname, "service": desired[hostname]})
                 seen.add(hostname)
 
-            current = [
-                r
-                for r in (existing or [])
-                if r.get("hostname") not in desired and r.get("service") != fallback_service
-            ]
-            current = ordered + current
+            passthrough: list[dict] = []
+            for rule in (existing or []):
+                hostname = str(rule.get("hostname") or "").strip().lower()
+                svc = str(rule.get("service") or "").strip()
 
-            if not any(r.get("service") == fallback_service for r in current):
-                current.append({"service": fallback_service})
+                # Drop catch-all entries from existing config; we always add one managed fallback at the end.
+                if not hostname:
+                    continue
+                if not svc:
+                    continue
+                if hostname in desired or hostname in seen:
+                    continue
 
-            return current
+                merged = dict(rule)
+                merged["hostname"] = hostname
+                merged["service"] = svc
+                passthrough.append(merged)
+
+            return ordered + passthrough + [{"service": fallback_service}]
 
         # ---- try #1
         try:

@@ -11,8 +11,25 @@ from .client import CloudFlare
 from .exception import CloudflareError
 
 
+def _token_from_file() -> str:
+    token_file = Path(settings.CLOUDFLARE_API_TOKEN_FILE)
+    if not token_file.exists():
+        return ""
+    try:
+        return token_file.read_text(encoding="utf-8").strip()
+    except Exception:
+        return ""
+
+
+def resolve_cf_token() -> str:
+    token = (settings.CLOUDFLARE_API_TOKEN or "").strip()
+    if token:
+        return token
+    return _token_from_file()
+
+
 def cf_configured() -> bool:
-    if settings.CLOUDFLARE_API_TOKEN:
+    if resolve_cf_token():
         return True
     try:
         state = Path(settings.CF_STATE_FILE)
@@ -124,7 +141,7 @@ async def apply_cloudflare_config(data: dict) -> dict:
     state_file = Path(settings.CF_STATE_FILE)
     cf = CloudFlare(state_file=state_file)
 
-    token = settings.CLOUDFLARE_API_TOKEN or None
+    token = resolve_cf_token() or None
     if await cf.bootstrap():
         token = None
     if token:

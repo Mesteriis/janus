@@ -1,12 +1,19 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from .. import settings
 from ..cloudflare.hostnames import validate_cf_service
 from ..validation import validate_domain
 from ..services import cloudflare as cf_service
 from ..services.errors import ServiceError
+from ..services import features as features_service
 
-router = APIRouter(tags=["Cloudflare"])
+
+def _ensure_tunnel_enabled() -> None:
+    if not features_service.is_tunnel_enabled():
+        raise HTTPException(status_code=404, detail="Not found")
+
+
+router = APIRouter(tags=["Cloudflare"], dependencies=[Depends(_ensure_tunnel_enabled)])
 
 
 @router.get("/api/cf/hostnames")
@@ -71,8 +78,8 @@ async def api_cf_apply():
 
 
 @router.post("/api/cf/sync")
-def api_cf_sync():
+async def api_cf_sync():
     try:
-        return cf_service.sync_from_routes()
+        return await cf_service.sync_from_routes()
     except ServiceError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail)

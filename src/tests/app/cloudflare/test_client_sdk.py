@@ -382,6 +382,48 @@ async def test_cloudflare_client_dns_and_tunnel(monkeypatch, tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_ensure_ingress_for_zone_drops_existing_catch_all(tmp_path):
+    from app.cloudflare import client as cf_client
+
+    cf = cf_client.CloudFlare(state_file=tmp_path / "state.json")
+    captured: dict[str, dict] = {}
+
+    async def fake_raw(method, path, payload=None):
+        if method == "GET":
+            return {
+                "success": True,
+                "result": {
+                    "config": {
+                        "ingress": [
+                            {"hostname": "", "service": "http://old-default"},
+                            {"hostname": "keep.example.com", "service": "http://keep"},
+                        ]
+                    }
+                },
+            }
+        if method == "PUT":
+            captured["payload"] = payload or {}
+            return {"success": True}
+        return {"success": True}
+
+    cf._raw = fake_raw  # type: ignore[assignment]
+    await cf.ensure_ingress_for_zone(
+        account_id="a1",
+        tunnel_id="tid",
+        zone="example.com",
+        service="http://caddy",
+        tunnel_name="t1",
+        fallback_service="http_status:404",
+    )
+
+    ingress = ((captured.get("payload") or {}).get("config") or {}).get("ingress") or []
+    assert ingress[-1] == {"service": "http_status:404"}
+    assert all((entry.get("hostname") or "").strip() for entry in ingress[:-1])
+    assert any(entry.get("hostname") == "example.com" for entry in ingress)
+    assert any(entry.get("hostname") == "*.example.com" for entry in ingress)
+
+
+@pytest.mark.asyncio
 async def test_provision_all_to_caddy(monkeypatch, tmp_path):
     from app.cloudflare import client as cf_client
     from app.cloudflare.checker import TokenCheckResult

@@ -21,6 +21,6 @@ async def test_update_routes_raw(monkeypatch, tmp_path, reload_settings):
     monkeypatch.setattr(raw_service, "provision_after_routes_change", _prov)
 
     payload = {"routes": []}
-    res = await raw_service.update_routes_raw(json.dumps(payload), payload)
+    res = await raw_service.update_routes_raw(json.dumps(payload))
     assert res["status"] == "saved"
     assert calls["trigger"] == provisioning.TRIGGER_RAW

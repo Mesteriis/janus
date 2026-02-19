@@ -46,12 +46,15 @@ defineEmits(['toggle', 'edit', 'delete'])
 const domains = computed(() => (props.route.domains || []).join(', '))
 
 const upstreamLabel = computed(() => {
-  const upstream = props.route.upstream || {}
+  const upstream = (props.route.upstreams && props.route.upstreams[0]) || props.route.upstream || {}
   return `${upstream.scheme || 'http'}://${upstream.host || ''}:${upstream.port || ''}`
 })
 
 const meta = computed(() => {
   const items = []
+  if (props.route.tls_enabled === false) {
+    items.push('TLS: off')
+  }
   if (props.route.request_body_max_mb !== null && props.route.request_body_max_mb !== undefined) {
     items.push(`Body: ${props.route.request_body_max_mb}MB`)
   }

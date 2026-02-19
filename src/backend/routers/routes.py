@@ -13,9 +13,7 @@ def _handle_service_error(exc: ServiceError):
 
 @router.get("/api/routes")
 def api_routes():
-    from ..storage import load_routes
-
-    return load_routes()
+    return routes_service.list_routes()
 
 
 @router.post("/api/routes")

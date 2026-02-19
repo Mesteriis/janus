@@ -1,0 +1,17 @@
+.git
+.gitignore
+.idea
+.pytest_cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.log
+.venv
+node_modules
+src/frontend/node_modules
+src/frontend/dist
+src/**/__pycache__
+.coverage
+htmlcov
+dashboard/__pycache__

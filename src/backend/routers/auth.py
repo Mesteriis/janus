@@ -2,7 +2,15 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from .. import settings
-from ..auth import auth_enabled, check_password, set_password
+from ..auth import (
+    auth_enabled,
+    check_password,
+    clear_sessions,
+    is_session_token_valid,
+    issue_session_token,
+    revoke_session_token,
+    set_password,
+)
 
 router = APIRouter(tags=["Auth"])
 
@@ -12,8 +20,8 @@ def auth_status(request: Request):
     enabled = auth_enabled()
     if not enabled:
         return {"enabled": False, "authorized": True}
-    token = request.cookies.get(settings.AUTH_COOKIE_NAME) or request.headers.get("X-Auth-Token") or ""
-    return {"enabled": True, "authorized": check_password(token)}
+    token = request.cookies.get(settings.AUTH_COOKIE_NAME) or request.headers.get("X-Auth-Token")
+    return {"enabled": True, "authorized": is_session_token_valid(token)}
 
 
 @router.post("/api/auth/login")
@@ -26,13 +34,16 @@ async def auth_login(request: Request):
         raise HTTPException(status_code=400, detail="Password is required")
     if not check_password(password.strip()):
         raise HTTPException(status_code=401, detail="Invalid password")
+    session_token = issue_session_token()
     response = JSONResponse({"status": "ok"})
-    response.set_cookie(settings.AUTH_COOKIE_NAME, password.strip(), httponly=True, samesite="lax")
+    response.set_cookie(settings.AUTH_COOKIE_NAME, session_token, httponly=True, samesite="lax")
     return response
 
 
 @router.post("/api/auth/logout")
-def auth_logout():
+def auth_logout(request: Request):
+    token = request.cookies.get(settings.AUTH_COOKIE_NAME) or request.headers.get("X-Auth-Token")
+    revoke_session_token(token)
     response = JSONResponse({"status": "ok"})
     response.delete_cookie(settings.AUTH_COOKIE_NAME)
     return response
@@ -50,16 +61,19 @@ async def auth_config(request: Request):
         if not isinstance(password, str) or not password.strip():
             raise HTTPException(status_code=400, detail="Password is required")
         set_password(password.strip())
+        session_token = issue_session_token()
         response = JSONResponse({"enabled": True, "authorized": True})
-        response.set_cookie(settings.AUTH_COOKIE_NAME, password.strip(), httponly=True, samesite="lax")
+        response.set_cookie(settings.AUTH_COOKIE_NAME, session_token, httponly=True, samesite="lax")
         return response
 
     if enabled is False:
         if auth_enabled():
-            token = request.cookies.get(settings.AUTH_COOKIE_NAME) or payload.get("password") or ""
-            if not check_password(token):
+            session_token = request.cookies.get(settings.AUTH_COOKIE_NAME) or request.headers.get("X-Auth-Token")
+            password = str(payload.get("password") or "")
+            if not is_session_token_valid(session_token) and not check_password(password):
                 raise HTTPException(status_code=401, detail="Invalid password")
         set_password("")
+        clear_sessions()
         response = JSONResponse({"enabled": False, "authorized": True})
         response.delete_cookie(settings.AUTH_COOKIE_NAME)
         return response

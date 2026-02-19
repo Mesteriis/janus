@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from .. import settings
+from ..cloudflare.exception import CloudflareError
+from ..cloudflare.flow import sync_cloudflare_from_routes as sync_cloudflare_flow
 from ..cloudflare.hostnames import (
     apply_cloudflare_config,
     cf_configured,
@@ -33,12 +35,6 @@ async def create_or_update_hostname(hostname: str, service: str, enabled: bool) 
         data.setdefault("hostnames", []).append({"hostname": hostname, "service": service, "enabled": enabled})
 
     save_cf_hostnames(data)
-    if cf_configured():
-        try:
-            await apply_cloudflare_config(data)
-        except Exception as exc:  # noqa: BLE001
-            raise ServiceError(502, str(exc))
-
     return {"hostname": hostname, "service": service, "enabled": enabled, "created": created}
 
 
@@ -52,11 +48,6 @@ async def update_hostname(hostname: str, payload: dict) -> dict:
         if "enabled" in payload:
             entry["enabled"] = bool(payload["enabled"])
         save_cf_hostnames(data)
-        if cf_configured():
-            try:
-                await apply_cloudflare_config(data)
-            except Exception as exc:  # noqa: BLE001
-                raise ServiceError(502, str(exc))
         return entry
 
     raise ServiceError(404, "Hostname not found")
@@ -70,27 +61,28 @@ async def delete_hostname(hostname: str) -> dict:
         raise ServiceError(404, "Hostname not found")
     data["hostnames"] = updated
     save_cf_hostnames(data)
-    if cf_configured():
-        try:
-            await apply_cloudflare_config(data)
-        except Exception as exc:  # noqa: BLE001
-            raise ServiceError(502, str(exc))
     return {"status": "deleted"}
 
 
 async def apply() -> dict:
-    if not cf_configured():
-        raise ServiceError(400, "Cloudflare API not configured")
-    data = load_cf_hostnames()
+    hostnames_data = load_cf_hostnames()
     try:
-        result = await apply_cloudflare_config(data)
+        return await apply_cloudflare_config(hostnames_data)
+    except CloudflareError as exc:
+        raise ServiceError(502, str(exc))
     except Exception as exc:  # noqa: BLE001
         raise ServiceError(502, str(exc))
-    return result
 
 
-def sync_from_routes() -> dict:
-    if not cf_configured():
-        raise ServiceError(400, "Cloudflare API not configured")
-    routes_data = load_routes()
-    return sync_cf_hostnames_from_routes(routes_data)
+async def sync_from_routes(data: dict | None = None) -> dict:
+    routes_data = data or load_routes()
+    try:
+        hostnames_sync = sync_cf_hostnames_from_routes(routes_data)
+        cloudflare_sync = await sync_cloudflare_flow(routes_data)
+        payload = dict(cloudflare_sync)
+        payload["hostnames_sync"] = hostnames_sync
+        return payload
+    except CloudflareError as exc:
+        raise ServiceError(502, str(exc))
+    except Exception as exc:  # noqa: BLE001
+        raise ServiceError(502, str(exc))

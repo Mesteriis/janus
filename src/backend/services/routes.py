@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import uuid
 
 from .errors import ServiceError
@@ -9,7 +10,6 @@ from .provisioning import (
     TRIGGER_PATCH,
     TRIGGER_REPLACE,
     provision_after_routes_change,
-    write_and_validate_config,
 )
 from ..storage import load_routes, save_routes
 
@@ -24,15 +24,24 @@ def _domains_conflict(domains: list[str], existing: dict, *, skip_id: str | None
     return False
 
 
+def list_routes() -> dict:
+    return load_routes()
+
+
 async def create_route(validated: dict) -> dict:
     data = load_routes()
     if _domains_conflict(validated["domains"], data):
         raise ServiceError(409, "Route with same domains already exists")
 
+    previous = copy.deepcopy(data)
     validated["id"] = str(uuid.uuid4())
     data.setdefault("routes", []).append(validated)
     save_routes(data)
-    await provision_after_routes_change(data, TRIGGER_CREATE)
+    try:
+        await provision_after_routes_change(data, TRIGGER_CREATE)
+    except Exception:
+        save_routes(previous)
+        raise
     return validated
 
 
@@ -44,10 +53,15 @@ async def replace_route(route_id: str, validated: dict) -> dict:
     for index, route in enumerate(data.get("routes", [])):
         if route.get("id") != route_id:
             continue
+        previous = copy.deepcopy(data)
         validated["id"] = route_id
         data["routes"][index] = validated
         save_routes(data)
-        await provision_after_routes_change(data, TRIGGER_REPLACE)
+        try:
+            await provision_after_routes_change(data, TRIGGER_REPLACE)
+        except Exception:
+            save_routes(previous)
+            raise
         return validated
 
     raise ServiceError(404, "Route not found")
@@ -59,12 +73,17 @@ async def update_route(route_id: str, patch: dict) -> dict:
     for route in data.get("routes", []):
         if route.get("id") != route_id:
             continue
+        previous = copy.deepcopy(data)
         if "enabled" in patch:
             route["enabled"] = bool(patch["enabled"])
         if "domains" in patch:
             route["domains"] = patch["domains"]
         save_routes(data)
-        write_and_validate_config(data)
+        try:
+            await provision_after_routes_change(data, TRIGGER_PATCH)
+        except Exception:
+            save_routes(previous)
+            raise
         return route
 
     raise ServiceError(404, "Route not found")
@@ -72,11 +91,16 @@ async def update_route(route_id: str, patch: dict) -> dict:
 
 async def delete_route(route_id: str) -> dict:
     data = load_routes()
+    previous = copy.deepcopy(data)
     routes = data.get("routes", [])
     updated = [route for route in routes if route.get("id") != route_id]
     if len(updated) == len(routes):
         raise ServiceError(404, "Route not found")
     data["routes"] = updated
     save_routes(data)
-    write_and_validate_config(data)
+    try:
+        await provision_after_routes_change(data, TRIGGER_DELETE)
+    except Exception:
+        save_routes(previous)
+        raise
     return {"status": "deleted"}

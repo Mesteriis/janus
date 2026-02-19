@@ -131,3 +131,28 @@ def test_render_caddy_config_full(tmp_path, monkeypatch, reload_settings):
     # write config file
     caddy.write_caddy_config(data)
     assert (tmp_path / "config.json5").exists()
+
+
+def test_render_caddyfile_http_site_when_tls_disabled(tmp_path, monkeypatch, reload_settings):
+    monkeypatch.setenv("CADDYFILE_PATH", str(tmp_path / "Caddyfile"))
+
+    from app import caddyfile
+
+    reload_settings()
+    importlib.reload(caddyfile)
+
+    rendered = caddyfile.render_caddyfile(
+        {
+            "routes": [
+                {
+                    "domains": ["demo.local"],
+                    "enabled": True,
+                    "tls_enabled": False,
+                    "upstreams": [{"scheme": "http", "host": "127.0.0.1", "port": 8080, "weight": 1}],
+                }
+            ]
+        }
+    )
+
+    assert "http://demo.local {" in rendered
+    assert "tls off" not in rendered

@@ -1,4 +1,5 @@
 import importlib
+import json
 
 
 def test_settings_path_normalization(monkeypatch, tmp_path):
@@ -6,6 +7,7 @@ def test_settings_path_normalization(monkeypatch, tmp_path):
     monkeypatch.setenv("ROUTES_FILE", "rel/routes.json")
     monkeypatch.setenv("CADDY_CONFIG", str(tmp_path / "abs.json5"))
     monkeypatch.setenv("CADDY_ERRORS_DIR", "rel/errors")
+    monkeypatch.setenv("SETTINGS_JSON_FILE", "rel/app_settings.json")
     monkeypatch.setenv("AUTH_PASSWORD_FILE", "rel/auth.txt")
     monkeypatch.setenv("CLOUDFLARE_HOSTNAMES_FILE", "rel/hosts.json")
     monkeypatch.setenv("CLOUDFLARE_STATE_FILE", "rel/state.json")
@@ -18,10 +20,48 @@ def test_settings_path_normalization(monkeypatch, tmp_path):
     assert settings.routes_file == root / "rel/routes.json"
     assert settings.caddy_config == tmp_path / "abs.json5"
     assert settings.caddy_errors_dir == root / "rel/errors"
+    assert settings.settings_json_file == root / "rel/app_settings.json"
     assert settings.auth_password_file == root / "rel/auth.txt"
     assert settings.cloudflare_hostnames_file == root / "rel/hosts.json"
     assert settings.cloudflare_state_file == root / "rel/state.json"
     assert settings.cf_tunnel_dir.endswith("rel/cloudflared")
+
+
+def test_settings_feature_flags(monkeypatch, tmp_path):
+    monkeypatch.setenv("FEATURE_TUNNEL_ENABLED", "false")
+    monkeypatch.setenv("FEATURE_VPN_ENABLED", "0")
+    monkeypatch.setenv("SETTINGS_JSON_FILE", str(tmp_path / "app_settings.json"))
+
+    from app.core.config import Settings
+
+    settings = Settings()
+    assert settings.feature_tunnel_enabled is False
+    assert settings.feature_vpn_enabled is False
+
+
+def test_settings_loaded_from_json_file(monkeypatch, tmp_path):
+    json_path = tmp_path / "app_settings.json"
+    json_path.write_text(
+        json.dumps(
+            {
+                "dashboard_port": 9099,
+                "feature_tunnel_enabled": False,
+                "feature_vpn_enabled": False,
+                "cloudflare_default_service": "http://example.internal:18080",
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("SETTINGS_JSON_FILE", str(json_path))
+    monkeypatch.setenv("DASHBOARD_PORT", "8090")
+
+    from app.core.config import Settings
+
+    settings = Settings()
+    assert settings.dashboard_port == 9099
+    assert settings.feature_tunnel_enabled is False
+    assert settings.feature_vpn_enabled is False
+    assert settings.cloudflare_default_service == "http://example.internal:18080"
 
 
 def test_configure_logging(monkeypatch):

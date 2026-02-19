@@ -26,13 +26,9 @@ async def test_cloudflare_service_create_update_delete(monkeypatch):
         store.clear()
         store.update(data)
 
-    async def _apply(_data):
-        return {"status": "ok"}
-
     monkeypatch.setattr(cf_service, "load_cf_hostnames", _load)
     monkeypatch.setattr(cf_service, "save_cf_hostnames", _save)
     monkeypatch.setattr(cf_service, "cf_configured", lambda: True)
-    monkeypatch.setattr(cf_service, "apply_cloudflare_config", _apply)
 
     created = await cf_service.create_or_update_hostname("demo.example.com", "http://x", True)
     assert created["created"] is True
@@ -53,27 +49,27 @@ async def test_cloudflare_service_create_update_delete(monkeypatch):
 @pytest.mark.asyncio
 async def test_cloudflare_service_apply_sync_errors(monkeypatch):
     from app.services import cloudflare as cf_service
-    from app.services.errors import ServiceError
 
-    monkeypatch.setattr(cf_service, "cf_configured", lambda: False)
-    with pytest.raises(ServiceError):
-        await cf_service.apply()
+    monkeypatch.setattr(
+        cf_service,
+        "load_cf_hostnames",
+        lambda: {"hostnames": [{"hostname": "demo.example.com", "service": "http://127.0.0.1:80", "enabled": True}]},
+    )
 
-    monkeypatch.setattr(cf_service, "cf_configured", lambda: True)
+    async def _apply(_data):
+        return {"status": "ok", "domains": 1}
 
-    async def boom(_data):
-        raise RuntimeError("boom")
+    monkeypatch.setattr(cf_service, "apply_cloudflare_config", _apply)
+    res_apply = await cf_service.apply()
+    assert res_apply["status"] == "ok"
 
-    monkeypatch.setattr(cf_service, "load_cf_hostnames", lambda: {"hostnames": []})
-    monkeypatch.setattr(cf_service, "apply_cloudflare_config", boom)
-    with pytest.raises(ServiceError):
-        await cf_service.apply()
+    monkeypatch.setattr(cf_service, "sync_cf_hostnames_from_routes", lambda _data: {"added": 1, "updated": 0, "skipped": 0})
 
-    monkeypatch.setattr(cf_service, "cf_configured", lambda: False)
-    with pytest.raises(ServiceError):
-        cf_service.sync_from_routes()
+    async def _sync_flow(_data):
+        return {"status": "ok", "domains": 1}
 
-    monkeypatch.setattr(cf_service, "cf_configured", lambda: True)
-    monkeypatch.setattr(cf_service, "sync_cf_hostnames_from_routes", lambda _d: {"added": 1})
-    monkeypatch.setattr(cf_service, "load_routes", lambda: {"routes": []})
-    assert cf_service.sync_from_routes()["added"] == 1
+    monkeypatch.setattr(cf_service, "sync_cloudflare_flow", _sync_flow)
+    monkeypatch.setattr(cf_service, "load_routes", lambda: {"routes": [{"domains": ["sync.example.com"]}]})
+    res_sync = await cf_service.sync_from_routes()
+    assert res_sync["status"] == "ok"
+    assert res_sync["hostnames_sync"]["added"] == 1

@@ -6,6 +6,7 @@ from ..storage import load_routes
 from .client import CloudFlare
 from .constants import DnsException
 from .exception import CloudflareError
+from .hostnames import resolve_cf_token
 
 
 def _iter_upstreams(route: dict):
@@ -80,7 +81,7 @@ async def sync_cloudflare_from_routes(data: dict | None = None) -> dict:
     state_file = Path(settings.CF_STATE_FILE)
     cf = CloudFlare(state_file=state_file)
 
-    token = settings.CLOUDFLARE_API_TOKEN or None
+    token = resolve_cf_token() or None
     if await cf.bootstrap():
         token = None
 

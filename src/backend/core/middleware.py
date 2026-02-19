@@ -9,7 +9,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from .context import set_correlation_id, reset_correlation_id
-from ..auth import auth_enabled, check_password
+from ..auth import auth_enabled, is_session_token_valid
 from .. import settings
 
 logger = logging.getLogger("backend.request")
@@ -87,7 +87,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         token = request.cookies.get(settings.AUTH_COOKIE_NAME) or request.headers.get(self.header_name) or ""
-        if check_password(token):
+        if is_session_token_valid(token):
             return await call_next(request)
 
         return JSONResponse({"detail": "Unauthorized"}, status_code=401)

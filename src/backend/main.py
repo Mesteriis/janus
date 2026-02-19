@@ -17,7 +17,9 @@ def create_app() -> FastAPI:
 
     @app.get("/")
     def index():
-        index_path = settings.STATIC_DIR / "index.html"
+        index_path = settings.BASE_DIR / "templates" / "index.html"
+        if not index_path.exists():
+            index_path = settings.STATIC_DIR / "index.html"
         if not index_path.exists():
             from fastapi.responses import PlainTextResponse
 

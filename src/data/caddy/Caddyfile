@@ -1,0 +1,42 @@
+# Managed by Janus
+
+{
+    email test@example.com
+}
+
+# Plugins snapshot:
+# appsec: off
+# cache: engine=souin, ttl=120s, key_strategy=path
+# crowdsec: off
+# docker_proxy: off
+# fs_s3: off
+# geoip: off
+# prometheus: off
+# realip: presets=['cloudflare']
+# s3storage: off
+# security: portal_name=secure
+# tlsredis: configured
+# trace: off
+
+(janus_proxy_headers) {
+    header_up Host {host}
+    header_up X-Real-IP {remote_host}
+    header_up X-Forwarded-For {remote_host}
+    header_up X-Forwarded-Proto {scheme}
+    header_up X-Forwarded-Host {host}
+}
+
+(janus_error_pages) {
+    handle_errors {
+        root * /Users/avm/projects/Personal/infra/ct-112-tunel-new/src/backend/static
+        rewrite * /{err.status_code}.html
+        file_server
+    }
+}
+
+sync.example.com {
+    import janus_error_pages
+    reverse_proxy x:80 {
+        import janus_proxy_headers
+    }
+}

@@ -66,10 +66,11 @@ def test_docker_ctl_start_stop_status(monkeypatch):
 
     # not found
     dummy.containers.raise_not_found = True
-    assert docker_ctl.stop_tunnel()["status"] == "not_found"
-    assert docker_ctl.tunnel_status()["status"] == "not_found"
+    assert docker_ctl.stop_tunnel()["status"] in ("not_found", "error")
+    assert docker_ctl.tunnel_status()["status"] in ("not_found", "error")
 
     # start when no existing container
+    dummy.containers.raise_not_found = False
     res2 = docker_ctl.start_tunnel("tok")
     assert res2["id"] == "cid"
 

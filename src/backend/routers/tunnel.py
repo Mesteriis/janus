@@ -1,20 +1,24 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 
-from .. import settings
+from ..services import features as features_service
 from ..services import tunnel as tunnel_service
 from ..services.errors import ServiceError
 
-router = APIRouter(tags=["Tunnel"])
+
+def _ensure_tunnel_enabled() -> None:
+    if not features_service.is_tunnel_enabled():
+        raise HTTPException(status_code=404, detail="Not found")
+
+
+router = APIRouter(tags=["Tunnel"], dependencies=[Depends(_ensure_tunnel_enabled)])
 
 
 @router.post("/api/cf/docker/start")
 async def api_cf_docker_start(request: Request):
-    payload = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
-    token = (payload.get("token") if isinstance(payload, dict) else None) or settings.CLOUDFLARE_TUNNEL_TOKEN
-    if not token:
-        raise HTTPException(status_code=400, detail="CLOUDFLARE_TUNNEL_TOKEN is empty")
+    payload = await request.json() if request else {}
+    token = str((payload or {}).get("token") or "").strip()
     try:
-        return tunnel_service.start(token)
+        return tunnel_service.start(token or None)
     except ServiceError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail)
 
