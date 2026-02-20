@@ -19,6 +19,7 @@ from docker.errors import APIError, NotFound
 
 from ..core.config import get_settings
 from ..caddyfile import write_default_caddyfile
+from ..docker_labels import compose_labels
 from ..storage import load_routes
 from ..utils import ensure_parent
 from .errors import ServiceError
@@ -371,6 +372,7 @@ def _create_or_start_container(recreate: bool = False) -> dict[str, Any]:
             restart_policy={"Name": "unless-stopped"},
             volumes=volumes,
             ports=ports,
+            labels=compose_labels("caddy", kind="caddy-runtime"),
         )
     else:
         assert container is not None

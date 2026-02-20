@@ -11,6 +11,7 @@ from uuid import uuid4
 import docker
 from docker.errors import APIError, NotFound
 
+from ..docker_labels import compose_labels
 from .. import settings
 from .errors import ServiceError
 
@@ -21,6 +22,43 @@ def _now() -> str:
 
 def _vpn_root() -> Path:
     return Path(settings.VPN_DATA_DIR)
+
+
+def _vpn_host_root() -> Path:
+    root = _vpn_root()
+    try:
+        container_id = Path("/etc/hostname").read_text(encoding="utf-8").strip()
+        if not container_id:
+            return root
+        client = _docker_client()
+        container = client.containers.get(container_id)
+        mounts = (container.attrs.get("Mounts") or []) if getattr(container, "attrs", None) else []
+        root_text = root.as_posix().rstrip("/")
+        for mount in mounts:
+            source = str(mount.get("Source") or "").strip()
+            destination = str(mount.get("Destination") or "").strip()
+            if not source or not destination:
+                continue
+            destination_text = Path(destination).as_posix().rstrip("/")
+            if root_text == destination_text:
+                return Path(source)
+            prefix = destination_text + "/"
+            if root_text.startswith(prefix):
+                suffix = root_text[len(prefix) :]
+                return Path(source) / suffix
+    except Exception:
+        # Fallback to current path when container mount metadata is unavailable.
+        return root
+    return root
+
+
+def _to_host_path(path: Path) -> Path:
+    root = _vpn_root()
+    try:
+        rel = path.relative_to(root)
+    except ValueError:
+        return path
+    return _vpn_host_root() / rel
 
 
 def _state_path() -> Path:
@@ -421,7 +459,8 @@ def _start_link_container(link: dict[str, Any]) -> dict[str, Any]:
     container_name = _link_container_name(link_id)
     _remove_container(container_name)
     _render_link_files(link)
-    ldir = _link_dir(link_id).resolve()
+    ldir = _link_dir(link_id)
+    ldir_host = _to_host_path(ldir)
     client = _docker_client()
     try:
         container = client.containers.run(
@@ -437,7 +476,8 @@ def _start_link_container(link: dict[str, Any]) -> dict[str, Any]:
             ],
             name=container_name,
             detach=True,
-            volumes={str(ldir): {"bind": "/config", "mode": "rw"}},
+            volumes={str(ldir_host): {"bind": "/config", "mode": "rw"}},
+            labels=compose_labels("vpn", kind="wireguard-link", extra={"io.janus.vpn.link_id": link_id}),
             **_wg_container_security_kwargs(),
         )
         container.reload()
@@ -500,7 +540,8 @@ def _start_container(server: dict[str, Any]) -> dict[str, Any]:
     _render_server_files(server)
 
     client = _docker_client()
-    server_path = _server_dir(sid).resolve()
+    server_path = _server_dir(sid)
+    server_path_host = _to_host_path(server_path)
     try:
         container = client.containers.run(
             image=settings.VPN_WG_IMAGE,
@@ -513,8 +554,9 @@ def _start_container(server: dict[str, Any]) -> dict[str, Any]:
             ],
             name=container_name,
             detach=True,
-            volumes={str(server_path): {"bind": "/config", "mode": "rw"}},
+            volumes={str(server_path_host): {"bind": "/config", "mode": "rw"}},
             ports={f"{int(server['listen_port'])}/udp": int(server["listen_port"])},
+            labels=compose_labels("vpn", kind="wireguard-server", extra={"io.janus.vpn.server_id": sid}),
             **_wg_container_security_kwargs(),
         )
         container.reload()

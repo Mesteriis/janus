@@ -13,26 +13,11 @@ services:
     restart: unless-stopped
     ports:
       - "0.0.0.0:${DASHBOARD_PORT:-8090}:8090"
-
-    environment:
-      - PYTHONUNBUFFERED=1
-      - ROUTES_FILE=/data/caddy/routes.json
-      - CADDYFILE_PATH=/data/caddy/Caddyfile
-      - SETTINGS_JSON_FILE=/data/settings/app_settings.json
-      - CLOUDFLARE_API_TOKEN_FILE=/data/cloudflare/api_token.txt
-      - CLOUDFLARE_DEFAULT_SERVICE=http://172.17.0.1:18080
-      - CF_TUNNEL_DIR=
-      - FEATURE_TUNNEL_ENABLED=${FEATURE_TUNNEL_ENABLED:-true}
-      - FEATURE_VPN_ENABLED=${FEATURE_VPN_ENABLED:-true}
-      - VPN_DATA_DIR=${PWD}/data/vpn
-      - VPN_STATE_FILE=${PWD}/data/vpn/state.json
-      - DASHBOARD_PORT=${DASHBOARD_PORT:-8090}
     volumes:
       - ./data/caddy:/data/caddy
       - ./data/cloudflare:/data/cloudflare
       - ./data/settings:/data/settings
       - ./data/vpn:/data/vpn
-      - ./data/vpn:${PWD}/data/vpn
       - /var/run/docker.sock:/var/run/docker.sock
 
     healthcheck:

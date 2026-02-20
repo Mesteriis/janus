@@ -1,6 +1,7 @@
 import docker
 from docker.errors import NotFound, APIError
 
+from .docker_labels import compose_labels
 from . import settings
 
 
@@ -48,6 +49,7 @@ def start_tunnel(token: str | None = None, container_name: str | None = None) ->
         command=tunnel_command(token),
         name=name,
         detach=True,
+        labels=compose_labels("cloudflared", kind="cloudflare-tunnel"),
     )
     container.reload()
     return {"id": container.id, "status": container.status, "container_name": name}
