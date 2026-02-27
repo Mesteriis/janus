@@ -229,6 +229,8 @@ def _global_block_lines(data: dict[str, Any]) -> list[str]:
     lines = ["{"]
     if settings.CADDY_EMAIL:
         lines.append(f"    email {settings.CADDY_EMAIL}")
+    # Auto HTTPS off для Cloudflare Tunnel — TLS terminates на edge Cloudflare
+    lines.append("    auto_https off")
     tlsredis = (data.get("plugins") or {}).get("tlsredis") or {}
     address = (tlsredis.get("address") or settings.TLS_REDIS_ADDRESS or "").strip()
     if address:
